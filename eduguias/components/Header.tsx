@@ -41,7 +41,7 @@ export default function Header() {
 
     return (
         <header className="w-full bg-white shadow-sm sticky top-0 z-50">
-            <div className="max-w-[1440px] mx-auto px-6 lg:px-14 h-[75px] flex items-center justify-between gap-8">
+            <div className="max-w-360 mx-auto px-6 lg:px-14 h-18.75 flex items-center justify-between gap-8">
 
                 {/* Logo */}
                 <Link href="/" className="flex items-center gap-2.5 shrink-0">
@@ -83,7 +83,7 @@ export default function Header() {
                     </Link>
 
                     <Link
-                        href="/register"
+                        href="/signup"
                         className="flex items-center gap-1.5 bg-brand text-white font-lexend font-bold text-sm px-4 py-2 rounded-lg hover:bg-brand-600 transition-colors"
                     >
                         <RegisterIcon />
