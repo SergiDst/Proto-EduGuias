@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ComponentProps } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import AuthHeroPanel from "@/components/AuthHeroPanel";
@@ -38,6 +38,8 @@ const ArrowIcon = () => (
 );
 
 export default function Login() {
+    type FormSubmitEvent = Parameters<NonNullable<ComponentProps<"form">["onSubmit"]>>[0];
+
     const router = useRouter();
     const [showPassword, setShowPassword] = useState(false);
     const [remember, setRemember] = useState(false);
@@ -49,7 +51,7 @@ export default function Login() {
     const login = useAuthStore((state) => state.login);
     const setSessionPersistence = useAuthStore((state) => state.setSessionPersistence);
 
-    const handleLogin = async (event: React.FormEvent<HTMLFormElement>) => {
+    const handleLogin = async (event: FormSubmitEvent) => {
         event.preventDefault();
         setErrorMessage("");
 
@@ -66,9 +68,8 @@ export default function Login() {
         } catch (error) {
             const message = error instanceof Error ? error.message : "No se pudo iniciar sesión.";
             setErrorMessage(message);
-        } finally {
-            setIsLoading(false);
         }
+        setIsLoading(false);
     };
 
     return (

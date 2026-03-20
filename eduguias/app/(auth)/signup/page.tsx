@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ComponentProps } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import AuthHeroPanel from "@/components/AuthHeroPanel";
@@ -44,6 +44,8 @@ const ArrowIcon = () => (
 );
 
 export default function Signup() {
+    type FormSubmitEvent = Parameters<NonNullable<ComponentProps<"form">["onSubmit"]>>[0];
+
     const router = useRouter();
     const [showPassword, setShowPassword] = useState(false);
     const [name, setName] = useState("");
@@ -54,7 +56,7 @@ export default function Signup() {
 
     const signUp = useAuthStore((state) => state.signUp);
 
-    const handleSignup = async (event: React.FormEvent<HTMLFormElement>) => {
+    const handleSignup = async (event: FormSubmitEvent) => {
         event.preventDefault();
         setErrorMessage("");
 
@@ -70,9 +72,8 @@ export default function Signup() {
         } catch (error) {
             const message = error instanceof Error ? error.message : "No se pudo crear la cuenta.";
             setErrorMessage(message);
-        } finally {
-            setIsLoading(false);
         }
+        setIsLoading(false);
     };
 
     return (
