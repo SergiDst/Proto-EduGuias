@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Lexend } from "next/font/google";
 import "./globals.css";
 import AuthListener from "@/components/AuthListener";
+import GlobalModal from "@/components/GlobalModal";
 
 const lexend = Lexend({
   subsets: ["latin"],
@@ -21,6 +22,7 @@ export default function RootLayout({ children, }: Readonly<{ children: React.Rea
     >
       <body className="min-h-full flex flex-col">
         <AuthListener />
+        <GlobalModal />
         {children}
       </body>
     </html>

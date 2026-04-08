@@ -1,23 +1,12 @@
 import { create } from "zustand";
-import {
-    browserLocalPersistence,
-    browserSessionPersistence,
-    reload,
-    setPersistence,
-    type User,
-} from "firebase/auth";
+import { browserLocalPersistence, browserSessionPersistence, reload, setPersistence, type User } from "firebase/auth";
 import { getFirebaseErrorMessage } from "@/utils/firebaseErrors";
 import { auth } from "@/lib/auth";
-import {
-    listenAuthState,
-    loginWithEmail,
-    logoutFirebase,
-    resetPasswordFirebase,
-    signupWithEmail,
-} from "@/services/authServices";
+import { listenAuthState, loginWithEmail, logoutFirebase, resetPasswordFirebase, signupWithEmail } from "@/services/authServices";
 
 interface AuthStore {
     user: User | null;
+    authReady: boolean;
 
     initAuthListener: () => () => void;
     setSessionPersistence: (remember: boolean) => Promise<void>;
@@ -30,10 +19,11 @@ interface AuthStore {
 
 export const useAuthStore = create<AuthStore>((set) => ({
     user: null,
+    authReady: false,
 
     initAuthListener: () => {
         const unsubscribe = listenAuthState((user) => {
-            set({ user });
+            set({ user, authReady: true });
         });
 
         return unsubscribe;
@@ -91,6 +81,6 @@ export const useAuthStore = create<AuthStore>((set) => ({
     },
 
     reset: () => {
-        set({ user: null });
+        set({ user: null, authReady: false });
     },
 }));

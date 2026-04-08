@@ -53,12 +53,12 @@ export default function AuthHeroPanel() {
         alt="Educators collaborating"
         fill
         priority
-        sizes="100vw"
+        sizes="(min-width: 1024px) 640px, 0px"
         className="object-cover object-center"
       />
 
       {/* Overlay */}
-      <div className="absolute inset-0 bg-brand/80" />
+      <div className="absolute inset-0 bg-brand/10" />
 
       {/* Content */}
       <div className="relative z-10 flex flex-col justify-center h-full px-16 py-16 gap-6 max-w-140">

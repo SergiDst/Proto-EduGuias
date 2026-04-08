@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import AuthHeroPanel from "@/components/AuthHeroPanel";
 import { useAuthStore } from "@/stores/authStore";
+import { useUiStore } from "@/stores/uiStore";
 
 const UserIcon = () => (
     <svg className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -47,31 +48,70 @@ export default function Signup() {
     type FormSubmitEvent = Parameters<NonNullable<ComponentProps<"form">["onSubmit"]>>[0];
 
     const router = useRouter();
+
+    const setGlobalModal = useUiStore((state) => state.setGlobalModal);
+    const signUp = useAuthStore((state) => state.signUp);
+
     const [showPassword, setShowPassword] = useState(false);
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [isLoading, setIsLoading] = useState(false);
-    const [errorMessage, setErrorMessage] = useState("");
 
-    const signUp = useAuthStore((state) => state.signUp);
+    const closeGlobalModal = () => {
+        setGlobalModal({ visible: false });
+    }
 
     const handleSignup = async (event: FormSubmitEvent) => {
         event.preventDefault();
-        setErrorMessage("");
 
         if (!name || !email || !password) {
-            setErrorMessage("Completa todos los campos.");
+            setGlobalModal({
+                    titulo: "Campos incompletos",
+                    descripcion: "Por favor, completa todos los campos para poder continuar.",
+                    visible: true,
+                    onClose: () => {
+                        closeGlobalModal();
+                    },
+                    imageIcon: (
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M9 12l2 2 4-4" stroke="#22C55E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                            <circle cx="12" cy="12" r="9.25" stroke="#22C55E" strokeWidth="1.5" />
+                        </svg>
+                    ),
+                });
             return;
         }
 
         setIsLoading(true);
         try {
-            await signUp(email, password);
-            router.push("/login");
+            await signUp(email, password).then(() => {
+                setGlobalModal({
+                    titulo: "Cuenta creada",
+                    descripcion: "Tu cuenta ha sido creada exitosamente. Por favor, verifica tu correo para activar tu cuenta.",
+                    visible: true,
+                    onClose: () => {
+                        closeGlobalModal();
+                        router.replace("/login");
+                    },
+                    imageIcon: (
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M9 12l2 2 4-4" stroke="#22C55E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                            <circle cx="12" cy="12" r="9.25" stroke="#22C55E" strokeWidth="1.5" />
+                        </svg>
+                    ),
+                });
+            });
         } catch (error) {
             const message = error instanceof Error ? error.message : "No se pudo crear la cuenta.";
-            setErrorMessage(message);
+            setGlobalModal({
+                titulo: "No se pudo crear la cuenta",
+                descripcion: message,
+                visible: true,
+                onClose: () => {
+                    closeGlobalModal();
+                },
+            });
         }
         setIsLoading(false);
     };
@@ -177,10 +217,6 @@ export default function Signup() {
                             {isLoading ? "Creando cuenta..." : "Crear cuenta"}
                             <ArrowIcon />
                         </button>
-
-                        {errorMessage && (
-                            <p className="text-sm text-[#DC2626] font-medium">{errorMessage}</p>
-                        )}
                     </form>
 
                     {/* Divider + login link */}

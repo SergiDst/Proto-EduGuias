@@ -1,7 +1,8 @@
 'use client'
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useAuthStore } from "@/stores/authStore";
 
 const LogoIcon = () => (
     <svg width="28" height="23" viewBox="0 0 28 23" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -30,21 +31,49 @@ const RegisterIcon = () => (
     </svg>
 );
 
+const LogoutIcon = () => (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path
+            d="M10 21V19H5V5H10V3H5C4.45 3 3.97917 3.19583 3.5875 3.5875C3.19583 3.97917 3 4.45 3 5V19C3 19.55 3.19583 20.0208 3.5875 20.4125C3.97917 20.8042 4.45 21 5 21H10ZM14 17L12.625 15.55L15.175 13H7V11H15.175L12.625 8.45L14 7L19 12L14 17Z"
+            fill="white"
+        />
+    </svg>
+);
+
 export default function Header() {
     const pathname = usePathname();
+    const router = useRouter();
+    const user = useAuthStore((state) => state.user);
+    const logout = useAuthStore((state) => state.logout);
 
-    const navLinks = [
-        { label: "Inicio", href: "/" },
-        { label: "Plantillas", href: "/plantillas" },
-        { label: "Guias", href: "/guias" },
-    ];
+    const isAuthenticated = Boolean(user);
+
+    const navLinks = isAuthenticated
+        ? [
+            { label: "Inicio", href: "/inicio" },
+            { label: "Mis actividades", href: "/mis-actividades" },
+            { label: "Plantillas", href: "/plantillas" },
+            { label: "Guias", href: "/guias" },
+            { label: "Ajustes", href: "/ajustes" },
+        ]
+        : [
+            { label: "Inicio", href: "/" },
+            { label: "Plantillas", href: "/plantillas" },
+            { label: "Guias", href: "/guias" },
+        ];
+
+    const handleLogout = async () => {
+        await logout();
+        document.cookie = "eduguias-auth=; path=/; max-age=0; samesite=lax";
+        router.push("/");
+    };
 
     return (
         <header className="w-full bg-white shadow-sm sticky top-0 z-50">
             <div className="max-w-360 mx-auto px-6 lg:px-14 h-18.75 flex items-center justify-between gap-8">
 
                 {/* Logo */}
-                <Link href="/" className="flex items-center gap-2.5 shrink-0">
+                <Link href={isAuthenticated ? "/inicio" : "/"} className="flex items-center gap-2.5 shrink-0">
                     <LogoIcon />
                     <span className="font-lexend font-bold text-xl tracking-tight text-edu-dark">
                         EduGuias
@@ -54,7 +83,9 @@ export default function Header() {
                 {/* Nav */}
                 <nav className="hidden md:flex items-center gap-10">
                     {navLinks.map((link) => {
-                        const isActive = pathname === link.href;
+                        const isActive = link.href === "/"
+                            ? pathname === "/" || pathname === "/inicio"
+                            : pathname === link.href;
 
                         return (
                             <Link
@@ -74,21 +105,34 @@ export default function Header() {
 
                 {/* CTA */}
                 <div className="flex items-center gap-3 shrink-0">
-                    <Link
-                        href="/login"
-                        className="hidden sm:flex items-center gap-1.5 bg-brand text-white font-lexend font-bold text-sm px-4 py-2 rounded-lg hover:bg-brand-600 transition-colors"
-                    >
-                        <LoginIcon />
-                        <span>Iniciar sesión</span>
-                    </Link>
+                    {isAuthenticated ? (
+                        <button
+                            type="button"
+                            onClick={handleLogout}
+                            className="flex items-center gap-1.5 bg-brand text-white font-lexend font-bold text-sm px-4 py-2 rounded-lg hover:bg-brand-600 transition-colors"
+                        >
+                            <LogoutIcon />
+                            <span>Cerrar sesion</span>
+                        </button>
+                    ) : (
+                        <>
+                            <Link
+                                href="/login"
+                                className="hidden sm:flex items-center gap-1.5 bg-brand text-white font-lexend font-bold text-sm px-4 py-2 rounded-lg hover:bg-brand-600 transition-colors"
+                            >
+                                <LoginIcon />
+                                <span>Iniciar sesión</span>
+                            </Link>
 
-                    <Link
-                        href="/signup"
-                        className="flex items-center gap-1.5 bg-brand text-white font-lexend font-bold text-sm px-4 py-2 rounded-lg hover:bg-brand-600 transition-colors"
-                    >
-                        <RegisterIcon />
-                        <span>Crear cuenta</span>
-                    </Link>
+                            <Link
+                                href="/signup"
+                                className="flex items-center gap-1.5 bg-brand text-white font-lexend font-bold text-sm px-4 py-2 rounded-lg hover:bg-brand-600 transition-colors"
+                            >
+                                <RegisterIcon />
+                                <span>Crear cuenta</span>
+                            </Link>
+                        </>
+                    )}
                 </div>
             </div>
         </header>

@@ -2,9 +2,10 @@
 
 import { useState, type ComponentProps } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import AuthHeroPanel from "@/components/AuthHeroPanel";
 import { useAuthStore } from "@/stores/authStore";
+import { useUiStore } from "@/stores/uiStore";
 
 const EmailIcon = () => (
     <svg className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -37,26 +38,43 @@ const ArrowIcon = () => (
     </svg>
 );
 
+function getLoginErrorMessage(error: unknown): string {
+    if (error instanceof Error) {
+        return error.message;
+    }
+
+    return "No se pudo iniciar sesión.";
+}
+
 export default function Login() {
     type FormSubmitEvent = Parameters<NonNullable<ComponentProps<"form">["onSubmit"]>>[0];
 
     const router = useRouter();
+    const searchParams = useSearchParams();
+
+    const setGlobalModal = useUiStore((state) => state.setGlobalModal);
+    const login = useAuthStore((state) => state.login);
+    const setSessionPersistence = useAuthStore((state) => state.setSessionPersistence);
+
     const [showPassword, setShowPassword] = useState(false);
     const [remember, setRemember] = useState(false);
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [isLoading, setIsLoading] = useState(false);
-    const [errorMessage, setErrorMessage] = useState("");
-
-    const login = useAuthStore((state) => state.login);
-    const setSessionPersistence = useAuthStore((state) => state.setSessionPersistence);
 
     const handleLogin = async (event: FormSubmitEvent) => {
         event.preventDefault();
-        setErrorMessage("");
+        const nextRoute = searchParams.get("next");
+        const destination = nextRoute ?? "/inicio";
+        let isSuccess = false;
 
         if (!email || !password) {
-            setErrorMessage("Completa correo y contraseña.");
+            setGlobalModal({
+                titulo: "Campos incompletos",
+                descripcion: "Por favor completa correo y contraseña para iniciar sesión.",
+                visible: true,
+                onClose: () => setGlobalModal({ visible: false }),
+            });
             return;
         }
 
@@ -64,11 +82,22 @@ export default function Login() {
         try {
             await setSessionPersistence(remember);
             await login(email, password);
-            router.push("/mis-actividades");
+            document.cookie = "eduguias-auth=1; path=/; max-age=2592000; samesite=lax";
+            isSuccess = true;
         } catch (error) {
-            const message = error instanceof Error ? error.message : "No se pudo iniciar sesión.";
-            setErrorMessage(message);
+            const message = getLoginErrorMessage(error);
+            setGlobalModal({
+                titulo: "Error al iniciar sesión",
+                descripcion: message,
+                visible: true,
+                onClose: () => setGlobalModal({ visible: false }),
+            });
         }
+
+        if (isSuccess) {
+            router.push(destination);
+        }
+
         setIsLoading(false);
     };
 
@@ -182,9 +211,6 @@ export default function Login() {
                             <ArrowIcon />
                         </button>
 
-                        {errorMessage && (
-                            <p className="text-sm text-[#DC2626] font-medium">{errorMessage}</p>
-                        )}
                     </form>
 
                     {/* Footer */}

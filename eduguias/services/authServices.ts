@@ -28,8 +28,8 @@ export async function signupWithEmail(email: string, password: string) {
         const ref = doc(db, usersCollection, credential.user.uid);
         const initialUserData = {
            Apodo: "",
-           Correo: email,
-           FotoPerfil: "",
+           ProfileIcon: 0,
+           //Agregar despues objetos u arrays vacios para actividades del usuario
         }
         await setDoc(ref, initialUserData, { merge: true });
         await sendEmailVerification(credential.user);

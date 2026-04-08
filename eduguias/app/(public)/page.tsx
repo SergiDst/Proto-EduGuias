@@ -91,6 +91,7 @@ export default function Home() {
                 alt="Profesores colaborando"
                 width={568}
                 height={568}
+                loading="eager"
                 className="w-full aspect-square object-cover rounded-2xl border-4 border-white shadow-2xl"
               />
             </div>
