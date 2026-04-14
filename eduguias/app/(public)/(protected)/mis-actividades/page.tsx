@@ -4,6 +4,7 @@ import { useState } from "react";
 import { FilterDropdown } from "@/components/FilterDropdown";
 import { Pagination } from "@/components/Pagination";
 import { ActivityCard } from "@/components/ActivityCard";
+import { useRouter } from "next/navigation";
 
 /* ── Data ── */
 const activities = [
@@ -50,6 +51,8 @@ const activities = [
 ];
 
 export default function MisActividades() {
+  const router = useRouter();
+
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
   return (
@@ -66,7 +69,7 @@ export default function MisActividades() {
               Gestiona, edita y monitorea la accesibilidad de tus materiales educativos.
             </p>
           </div>
-          <button className="flex items-center gap-1.5 bg-brand text-white font-lexend font-bold text-sm px-5 py-2.5 rounded-lg hover:bg-brand-600 transition-colors shrink-0">
+          <button onClick={()=> router.push('/mis-actividades/actividades')} className="cursor-pointer flex items-center gap-1.5 bg-brand text-white font-lexend font-bold text-sm px-5 py-2.5 rounded-lg hover:bg-brand-600 transition-colors shrink-0">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
               <path d="M12 4.5v15m7.5-7.5h-15" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
             </svg>

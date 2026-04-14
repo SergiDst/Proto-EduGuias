@@ -1,8 +1,10 @@
 'use client'
 
+import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuthStore } from "@/stores/authStore";
+import { useUiStore } from "@/stores/uiStore";
 
 const LogoIcon = () => (
     <svg width="28" height="23" viewBox="0 0 28 23" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -45,6 +47,17 @@ export default function Header() {
     const router = useRouter();
     const user = useAuthStore((state) => state.user);
     const logout = useAuthStore((state) => state.logout);
+    const headerVisible = useUiStore((state) => state.headerVisible);
+    const setHeaderVisible = useUiStore((state) => state.setHeaderVisible);
+    const isEditorRoute = pathname?.startsWith("/mis-actividades/editorActividades");
+
+    useEffect(() => {
+        setHeaderVisible(!isEditorRoute);
+    }, [isEditorRoute, setHeaderVisible]);
+
+    if (!headerVisible || isEditorRoute) {
+        return null;
+    }
 
     const isAuthenticated = Boolean(user);
 

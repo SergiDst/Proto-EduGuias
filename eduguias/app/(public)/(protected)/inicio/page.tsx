@@ -136,7 +136,7 @@ export default function InicioPage() {
 							Actividades recientes
 						</h2>
 						<Link
-							href="/mis-actividades"
+							href="/mis-actividades/actividades"
 							className="flex items-center gap-1.5 bg-brand text-white font-lexend font-bold text-sm px-5 py-2.5 rounded-lg hover:bg-brand-600 transition-colors"
 						>
 							<svg width="14" height="14" viewBox="0 0 24 24" fill="none">

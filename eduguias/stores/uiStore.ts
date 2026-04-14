@@ -12,7 +12,9 @@ export interface GlobalModalState {
 
 interface UiStore {
     globalModal: GlobalModalState;
+    headerVisible: boolean;
     setGlobalModal: (modal: Partial<GlobalModalState>) => void;
+    setHeaderVisible: (visible: boolean) => void;
 }
 
 const defaultGlobalModal: GlobalModalState = {
@@ -27,6 +29,7 @@ const defaultGlobalModal: GlobalModalState = {
 
 export const useUiStore = create<UiStore>((set) => ({
     globalModal: defaultGlobalModal,
+    headerVisible: true,
 
     setGlobalModal: (modal) => {
         set((state) => ({
@@ -35,5 +38,9 @@ export const useUiStore = create<UiStore>((set) => ({
                 ...modal,
             },
         }));
+    },
+
+    setHeaderVisible: (visible) => {
+        set({ headerVisible: visible });
     },
 }));
