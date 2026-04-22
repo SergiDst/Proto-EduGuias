@@ -1,7 +1,11 @@
 'use client'
 
+import { toDisplayActivityType, toEditorActivityType } from "@/constants/activityTypes";
+import { useAuthStore } from "@/stores/authStore";
+import { useActividadesStore } from "@/stores/actividadesStore";
 import { useUiStore } from "@/stores/uiStore";
 import Link from "next/link";
+import { useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 
 function CuestionarioIcon({ color }: { color: string }) {
@@ -122,34 +126,86 @@ const templates = [
     },
 ];
 
-const recentItems = [
-    {
-        id: "math",
-        title: "Math Finals - Grade 10",
-        meta: "Cuestionario • Ultimo uso hace 2h",
-        bg: "bg-blue-50",
-        iconColor: "#135BEC",
-        icon: CuestionarioIcon,
-    },
-    {
-        id: "history",
-        title: "Historical Revolution Study",
-        meta: "Verdadero - Falso • Ultimo uso Ayer",
-        bg: "bg-teal-50",
-        iconColor: "#0D9488",
-        icon: VerdaderoFalsoIcon,
-    },
-];
+const getTypeVisualConfig = (editorType: string) => {
+    switch (editorType) {
+        case "cuestionario":
+            return { bg: "bg-blue-50", iconColor: "#135BEC", icon: CuestionarioIcon };
+        case "union-conceptos":
+            return { bg: "bg-purple-50", iconColor: "#9333EA", icon: UnionConceptosIcon };
+        case "lectura":
+            return { bg: "bg-yellow-50", iconColor: "#D97706", icon: LecturaIcon };
+        case "video-guia":
+            return { bg: "bg-rose-50", iconColor: "#E11D48", icon: VideoGuiaIcon };
+        case "verdadero-falso":
+            return { bg: "bg-teal-50", iconColor: "#0D9488", icon: VerdaderoFalsoIcon };
+        default:
+            return { bg: "bg-slate-100", iconColor: "#475569", icon: CuestionarioIcon };
+    }
+};
 
 export default function EligePlantilla() {
 
     const router = useRouter();
     const setHeaderVisble = useUiStore((state) => state.setHeaderVisible);
+    const { user, authReady } = useAuthStore((state) => ({
+        user: state.user,
+        authReady: state.authReady,
+    }));
+    const {
+        actividades,
+        loading,
+        error,
+        fetchActividadesByUser,
+        fetchActividadById,
+    } = useActividadesStore((state) => ({
+        actividades: state.actividades,
+        loading: state.loading,
+        error: state.error,
+        fetchActividadesByUser: state.fetchActividadesByUser,
+        fetchActividadById: state.fetchActividadById,
+    }));
+
+    useEffect(() => {
+        if (!authReady || !user?.uid) {
+            return;
+        }
+
+        fetchActividadesByUser(user.uid).catch(() => undefined);
+    }, [authReady, user?.uid, fetchActividadesByUser]);
+
+    const recentItems = useMemo(() => {
+        return actividades.slice(0, 2).map((activity) => {
+            const editorType = toEditorActivityType(activity.type);
+            const visual = getTypeVisualConfig(editorType);
+
+            return {
+                id: activity.id,
+                title: activity.title,
+                meta: `${toDisplayActivityType(activity.type)} • ${activity.subject}`,
+                editorType,
+                ...visual,
+            };
+        });
+    }, [actividades]);
 
     const handleNavigate = (route: string) => {
         router.push(route);
         setHeaderVisble(false);
     }
+
+    const handleEditActivity = async (actividadId: string, editorType: string) => {
+        if (!user?.uid) {
+            return;
+        }
+
+        const actividad = await fetchActividadById(user.uid, actividadId);
+        if (!actividad) {
+            return;
+        }
+
+        const targetType = toEditorActivityType(editorType);
+        handleNavigate(`/mis-actividades/${targetType}?actividadId=${actividad.id}`);
+    };
 
     return (
         <div className="min-h-screen bg-[#F6F6F8] font-[Lexend]">
@@ -235,12 +291,25 @@ export default function EligePlantilla() {
                         </h2>
                     </div>
 
+                    {loading ? (
+                        <div className="bg-white rounded-2xl border border-slate-200 p-5 text-[#64748B]">
+                            Cargando actividades recientes...
+                        </div>
+                    ) : null}
+
+                    {error ? (
+                        <div className="bg-red-50 border border-red-200 rounded-2xl p-5 text-red-600">
+                            {error}
+                        </div>
+                    ) : null}
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {recentItems.map((item) => {
                             const Icon = item.icon;
                             return (
                                 <button
                                     key={item.id}
+                                    onClick={() => handleEditActivity(item.id, item.editorType)}
                                     className="flex items-center gap-4 bg-white rounded-2xl border border-slate-200 px-5 py-4 hover:shadow-md transition-shadow duration-200 text-left group"
                                 >
                                     <div className={`flex items-center justify-center w-12 h-12 rounded-xl shrink-0 ${item.bg}`}>
@@ -266,6 +335,12 @@ export default function EligePlantilla() {
                             );
                         })}
                     </div>
+
+                    {!loading && !error && recentItems.length === 0 ? (
+                        <div className="bg-white rounded-2xl border border-slate-200 p-5 text-[#64748B] mt-4">
+                            Aun no tienes actividades creadas.
+                        </div>
+                    ) : null}
                 </div>
             </main>
         </div>

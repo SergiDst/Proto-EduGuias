@@ -1,59 +1,80 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { FilterDropdown } from "@/components/FilterDropdown";
 import { Pagination } from "@/components/Pagination";
 import { ActivityCard } from "@/components/ActivityCard";
 import { useRouter } from "next/navigation";
+import { useAuthStore } from "@/stores/authStore";
+import { useActividadesStore } from "@/stores/actividadesStore";
 
-/* ── Data ── */
-const activities = [
-  {
-    id: 1,
-    type: "CUESTIONARIO",
-    subject: "Ciencias",
-    title: "Introdución a termodinamica",
-    lastModified: "Oct 24, 2023",
-    score: 92,
-  },
-  {
-    id: 2,
-    type: "UNION DE CONCEPTOS",
-    subject: "Humanidades",
-    title: "Ecosistema de interdependencias",
-    lastModified: "Oct 21, 2023",
-    score: 68,
-  },
-  {
-    id: 3,
-    type: "LECTURA",
-    subject: "Sociales",
-    title: "Historia de la Revolución industrial",
-    lastModified: "Oct 15, 2023",
-    score: 42,
-  },
-  {
-    id: 4,
-    type: "VIDEO GUIA",
-    subject: "Matematicas",
-    title: "Explicación de expresiones algebraicas",
-    lastModified: "Oct 12, 2023",
-    score: 88,
-  },
-  {
-    id: 5,
-    type: "VERDADERO - FALSO",
-    subject: "Ciencias",
-    title: "Mitos y verdades de la energía renovable",
-    lastModified: "Oct 08, 2023",
-    score: 95,
-  },
-];
+const TYPE_LABELS: Record<string, string> = {
+  cuestionario: "CUESTIONARIO",
+  "union-conceptos": "UNION DE CONCEPTOS",
+  lectura: "LECTURA",
+  "video-guia": "VIDEO GUIA",
+  "verdadero-falso": "VERDADERO - FALSO",
+};
+
+const formatTypeLabel = (type: string) => {
+  const normalized = type.trim().toLowerCase();
+  return TYPE_LABELS[normalized] ?? type.toUpperCase();
+};
+
+const formatDate = (date: Date | null) => {
+  if (!date) {
+    return "Sin fecha";
+  }
+
+  return new Intl.DateTimeFormat("es-ES", {
+    month: "short",
+    day: "2-digit",
+    year: "numeric",
+  }).format(date);
+};
 
 export default function MisActividades() {
   const router = useRouter();
+  const { user, authReady } = useAuthStore((state) => ({
+    user: state.user,
+    authReady: state.authReady,
+  }));
+  const {
+    actividades,
+    loading,
+    error,
+    fetched,
+    fetchActividadesByUser,
+  } = useActividadesStore((state) => ({
+    actividades: state.actividades,
+    loading: state.loading,
+    error: state.error,
+    fetched: state.fetched,
+    fetchActividadesByUser: state.fetchActividadesByUser,
+  }));
 
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+
+  useEffect(() => {
+    if (!authReady || !user?.uid) {
+      return;
+    }
+
+    fetchActividadesByUser(user.uid).catch(() => undefined);
+  }, [authReady, user?.uid, fetchActividadesByUser]);
+
+  const activities = useMemo(
+    () =>
+      actividades.map((activity) => ({
+        id: activity.id,
+        type: formatTypeLabel(activity.type),
+        subject: activity.subject,
+        title: activity.title,
+        lastModified: formatDate(activity.updatedAt ?? activity.createdAt),
+        score: activity.score,
+      })),
+    [actividades]
+  );
 
   return (
     <div className="min-h-screen bg-edu-bg font-lexend">
@@ -106,17 +127,42 @@ export default function MisActividades() {
           </div>
         </div>
 
-        {/* Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {activities.map((activity) => (
-            <ActivityCard key={activity.id} activity={activity} />
-          ))}
-        </div>
+        {!authReady || loading ? (
+          <div className="bg-white border border-edu-light rounded-2xl p-6 text-edu-muted">
+            Cargando actividades...
+          </div>
+        ) : null}
+
+        {authReady && !user ? (
+          <div className="bg-white border border-edu-light rounded-2xl p-6 text-edu-muted">
+            Debes iniciar sesión para ver tus actividades.
+          </div>
+        ) : null}
+
+        {error ? (
+          <div className="bg-red-50 border border-red-200 rounded-2xl p-6 text-red-600">
+            {error}
+          </div>
+        ) : null}
+
+        {authReady && user && fetched && !loading && !error ? (
+          activities.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {activities.map((activity) => (
+                <ActivityCard key={activity.id} activity={activity} />
+              ))}
+            </div>
+          ) : (
+            <div className="bg-white border border-edu-light rounded-2xl p-6 text-edu-muted">
+              Aún no tienes actividades creadas.
+            </div>
+          )
+        ) : null}
 
         {/* Footer */}
         <div className="flex items-center justify-between pt-2">
           <span className="font-lexend font-normal text-sm text-edu-muted">
-            Mostrando 1 de 1 paginas
+            Mostrando {activities.length} actividades
           </span>
           <Pagination />
         </div>

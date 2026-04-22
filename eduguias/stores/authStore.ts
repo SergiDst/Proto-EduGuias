@@ -1,21 +1,9 @@
 import { create } from "zustand";
-import { browserLocalPersistence, browserSessionPersistence, reload, setPersistence, type User } from "firebase/auth";
+import { browserLocalPersistence, browserSessionPersistence, reload, setPersistence } from "firebase/auth";
+import { AuthStore } from "@/interfaces/authStore";
 import { getFirebaseErrorMessage } from "@/utils/firebaseErrors";
 import { auth } from "@/lib/auth";
 import { listenAuthState, loginWithEmail, logoutFirebase, resetPasswordFirebase, signupWithEmail } from "@/services/authServices";
-
-interface AuthStore {
-    user: User | null;
-    authReady: boolean;
-
-    initAuthListener: () => () => void;
-    setSessionPersistence: (remember: boolean) => Promise<void>;
-    login: (email: string, password: string) => Promise<User | void>;
-    logout: () => Promise<void>;
-    resetPassword: (email: string) => Promise<void>;
-    signUp: (email: string, password: string) => Promise<void>;
-    reset: () => void;
-}
 
 export const useAuthStore = create<AuthStore>((set) => ({
     user: null,

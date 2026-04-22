@@ -1,21 +1,7 @@
 import { create } from "zustand";
+import { GlobalModalState, UiStore } from "@/interfaces/uiStore";
 
-export interface GlobalModalState {
-    titulo: string;
-    descripcion: string;
-    visible: boolean;
-    onClose: () => void;
-    onConfirm?: () => void;
-    showConfirm?: boolean;
-    imageIcon?: React.ReactElement;
-}
-
-interface UiStore {
-    globalModal: GlobalModalState;
-    headerVisible: boolean;
-    setGlobalModal: (modal: Partial<GlobalModalState>) => void;
-    setHeaderVisible: (visible: boolean) => void;
-}
+export type { GlobalModalState };
 
 const defaultGlobalModal: GlobalModalState = {
     titulo: "",

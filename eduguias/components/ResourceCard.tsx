@@ -10,6 +10,7 @@ export interface ResourceCardProps {
   description: string;
   action: "download" | "link";
   actionLabel: string;
+  href?: string;
 }
 
 const DownloadIcon = () => (
@@ -46,10 +47,22 @@ export function ResourceCard({ resource }: { resource: ResourceCardProps }) {
       </div>
 
       {/* Action button */}
-      <button className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-edu-light bg-edu-bg font-lexend font-semibold text-sm text-edu-muted hover:border-brand/30 hover:text-brand transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand">
-        {resource.action === "download" ? <DownloadIcon /> : <OpenExternalIcon />}
-        {resource.actionLabel}
-      </button>
+      {resource.href ? (
+        <a
+          href={resource.href}
+          target="_blank"
+          rel="noreferrer"
+          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-edu-light bg-edu-bg font-lexend font-semibold text-sm text-edu-muted hover:border-brand/30 hover:text-brand transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+        >
+          {resource.action === "download" ? <DownloadIcon /> : <OpenExternalIcon />}
+          {resource.actionLabel}
+        </a>
+      ) : (
+        <button className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-edu-light bg-edu-bg font-lexend font-semibold text-sm text-edu-muted hover:border-brand/30 hover:text-brand transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand">
+          {resource.action === "download" ? <DownloadIcon /> : <OpenExternalIcon />}
+          {resource.actionLabel}
+        </button>
+      )}
     </div>
   );
 }

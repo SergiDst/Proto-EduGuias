@@ -1,6 +1,11 @@
 import Link from "next/link";
 import { QuizIcon, ConceptMapIcon, ReadingIcon, VideoIcon, DotsIcon } from "@/components/InicioIcons";
 import { ActivityRowIcon } from "@/components/ActivityRowIcon";
+import { useRouter } from "next/navigation";
+import { useEffect, useMemo } from "react";
+import { useAuthStore } from "@/stores/authStore";
+import { useActividadesStore } from "@/stores/actividadesStore";
+import { toDisplayActivityType, toEditorActivityType } from "@/constants/activityTypes";
 
 /* ── Data ── */
 const quickStartCards = [
@@ -34,33 +39,6 @@ const quickStartCards = [
 	},
 ];
 
-const recentActivities = [
-	{
-		id: 1,
-		name: "Intro a Biologia Molecular",
-		subject: "Biologia Modulo 101",
-		type: "Cuestionario",
-		score: 92,
-		lastEdited: "Oct 24, 2023",
-	},
-	{
-		id: 2,
-		name: "Movimiento del arte renacentista",
-		subject: "Arte e Historia III",
-		type: "Union de conceptos",
-		score: 78,
-		lastEdited: "Oct 22, 2023",
-	},
-	{
-		id: 3,
-		name: "Impacto global de la energia sostenible",
-		subject: "Ciencias",
-		type: "Video guia",
-		score: 45,
-		lastEdited: "Oct 19, 2023",
-	},
-];
-
 /* ── Utils ── */
 const scoreColor = (score: number) => {
 	if (score >= 80) return "bg-emerald-500";
@@ -74,8 +52,74 @@ const scoreTextColor = (score: number) => {
 	return "text-red-500";
 };
 
+const formatDate = (date: Date | null) => {
+	if (!date) {
+		return "Sin fecha";
+	}
+
+	return new Intl.DateTimeFormat("es-ES", {
+		month: "short",
+		day: "2-digit",
+		year: "numeric",
+	}).format(date);
+};
+
 /* ── Page ── */
 export default function InicioPage() {
+	const router = useRouter();
+	const { user, authReady } = useAuthStore((state) => ({
+		user: state.user,
+		authReady: state.authReady,
+	}));
+	const {
+		actividades,
+		loading,
+		error,
+		fetchActividadesByUser,
+		fetchActividadById,
+	} = useActividadesStore((state) => ({
+		actividades: state.actividades,
+		loading: state.loading,
+		error: state.error,
+		fetchActividadesByUser: state.fetchActividadesByUser,
+		fetchActividadById: state.fetchActividadById,
+	}));
+
+	useEffect(() => {
+		if (!authReady || !user?.uid) {
+			return;
+		}
+
+		fetchActividadesByUser(user.uid).catch(() => undefined);
+	}, [authReady, user?.uid, fetchActividadesByUser]);
+
+	const recentActivities = useMemo(
+		() =>
+			actividades.slice(0, 3).map((activity) => ({
+				id: activity.id,
+				editorType: toEditorActivityType(activity.type),
+				name: activity.title,
+				subject: activity.subject,
+				type: toDisplayActivityType(activity.type),
+				score: activity.score,
+				lastEdited: formatDate(activity.updatedAt ?? activity.createdAt),
+			})),
+		[actividades]
+	);
+
+	const handleEditActivity = async (actividadId: string, editorType: string) => {
+		if (!user?.uid) {
+			return;
+		}
+
+		const actividad = await fetchActividadById(user.uid, actividadId);
+		if (!actividad) {
+			return;
+		}
+
+		router.push(`/mis-actividades/${editorType}?actividadId=${actividad.id}`);
+	};
+
 	return (
 		<div className="min-h-screen bg-edu-bg font-lexend">
 
@@ -170,7 +214,8 @@ export default function InicioPage() {
 						{/* Rows */}
 						{recentActivities.map((activity, i) => (
 							<div key={activity.id}
-								className={`grid grid-cols-[0.36fr_0.17fr_0.27fr_0.12fr_0.08fr] items-center px-6 py-4 gap-5 ${i < recentActivities.length - 1 ? "border-b border-edu-light" : ""}`}
+								className={`grid grid-cols-[0.36fr_0.17fr_0.27fr_0.12fr_0.08fr] items-center px-6 py-4 gap-5 cursor-pointer hover:bg-slate-50 ${i < recentActivities.length - 1 ? "border-b border-edu-light" : ""}`}
+								onClick={() => handleEditActivity(activity.id, activity.editorType)}
 							>
 								{/* Name */}
 								<div className="flex items-center gap-3">
@@ -222,6 +267,24 @@ export default function InicioPage() {
 								</div>
 							</div>
 						))}
+
+						{loading ? (
+							<div className="px-6 py-4 text-sm text-edu-muted border-t border-edu-light">
+								Cargando actividades...
+							</div>
+						) : null}
+
+						{error ? (
+							<div className="px-6 py-4 text-sm text-red-600 border-t border-edu-light bg-red-50">
+								{error}
+							</div>
+						) : null}
+
+						{!loading && !error && recentActivities.length === 0 ? (
+							<div className="px-6 py-4 text-sm text-edu-muted border-t border-edu-light">
+								Aun no hay actividades recientes.
+							</div>
+						) : null}
 					</div>
 
 				</section>

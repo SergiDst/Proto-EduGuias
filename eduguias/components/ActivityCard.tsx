@@ -91,7 +91,7 @@ const scoreTextColor = (score: number) => {
 };
 
 interface Activity {
-  id: number;
+  id: string | number;
   type: string;
   subject: string;
   title: string;

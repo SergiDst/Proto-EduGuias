@@ -13,13 +13,28 @@ import {
     isValidSectionForActivity,
     isValidTipoActividad,
 } from "@/constants/editorRouting";
-import { useParams, useRouter } from "next/navigation";
+import { useAuthStore } from "@/stores/authStore";
+import { useActividadesStore } from "@/stores/actividadesStore";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useEffect } from "react";
 
 export default function EditorSeccionPage() {
     const params = useParams<{ tipoActividad: string; seccion: string }>();
     const router = useRouter();
+    const searchParams = useSearchParams();
     const tipoActividad = params?.tipoActividad;
     const seccion = params?.seccion;
+    const actividadId = searchParams.get("actividadId");
+    const user = useAuthStore((state) => state.user);
+    const fetchActividadById = useActividadesStore((state) => state.fetchActividadById);
+
+    useEffect(() => {
+        if (!actividadId || !user?.uid) {
+            return;
+        }
+
+        fetchActividadById(user.uid, actividadId).catch(() => undefined);
+    }, [actividadId, user?.uid, fetchActividadById]);
 
     if (!tipoActividad || !seccion || !isValidTipoActividad(tipoActividad)) {
         return <div>Tipo de actividad no reconocido</div>;
