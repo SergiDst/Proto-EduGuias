@@ -266,6 +266,13 @@ El enfoque funcional del producto es:
 - Si existe actividadId, carga actividad seleccionada desde Firebase
 - Renderiza componentes de seccion segun tipo (actualmente solo para cuestionario)
 - Aqui se debe poder crear un objeto de actividad el cual debe ser evaluado segun principios de UDL (como longitud del texto) y WCAG (contraste de colores) (tipar por union discriminada a una interfaz de actividad base y actividades de tipos en concreto)
+- Funcionalidad de pantallas:
+  - Objetivo: Escribir el objetivo de esa actividad, este objetivo aparece al iniciar la actividad (ej: que es lo que debe haber aprendido el usuario que resuleva la actividad)
+  - Contenido: (Puede variar segun el tipo de actividad, aunque actualmente solo este cuestionario) Debe contener un formulario sencillo para poder crear el objeto del contenido de la actividad segun su tipo (crear la interfaz de la actividad)
+  - Retroalimentacion: Aqui se decide si la retroalimentación se da al responder una pregunta o al finalizar la actividad, si se desea que se vean las respuestas correctas despues de responder, las explicaciones de cada respuesta y un mensaje general que sale al finalizar la actividad.
+  - Paleta de colores: Se muestra una preview (de la primera pregunta unicamente) de como luce la actividad con el contenido que halla colocado el usuario y se puede personalizar la tipografia, el tamaño de los titulos, subtitulos y texto, tambien el color del texto y el color de fondo de la actividad. Tambien existe una pequeña sección con modos recomendados los cuales tienen una preselección de colores y tamaños de texto los cuales siguen los conceptos de WCAG. (ACTUALMENTE HAY UN PLACEHOLDER DE ACTIVIDAD, DEBE REEMPLAZARCE POR EL CONTENIDO REAL QUE CREA EL USUARIO)
+  - Evaluación: estadisticas que indican y dan un puntaje segun los criterios cumplidos del UDL y WCAG
+  - Descargar: da opciones para descargar la actividad creada en HTML+CSS+JS o SCORM para su utilización en moodle.
 
 ### /ajustes
 - Perfil y preferencias del usuario
@@ -274,5 +281,430 @@ El enfoque funcional del producto es:
 - En la información debe permitir cambiar el apodo y solicitar un cambio de contraseña al correo (manejado por firebase)
 - En preferencias permite cambiar el idioma en el que se ve la plataforma (Español o ingles, por defecto español )
 - En preferncias permite activar el modo de daltonismo (cambios en las paletas de color para tener un alto contraste)
+
+---
+
+## 7. Interfaces y tipos TypeScript
+
+### Actividad
+```typescript
+interface Actividad {
+  id: string;
+  type: string;                         // "cuestionario", "verdadero-falso", etc.
+  subject: string;                      // Materia/asignatura
+  title: string;                        // Nombre de la actividad
+  score: number;                        // Puntuación de accesibilidad (default: 0)
+  createdAt: Date | null;
+  updatedAt: Date | null;
+  payload?: Record<string, unknown>;    //Contenido de la actividad Datos específicos por tipo (pasos del editor)
+}
+
+interface CreateActividadInput {
+  type: string;
+  subject: string;
+  title: string;
+  score?: number;
+  payload?: Record<string, unknown>;
+}
+
+type UpdateActividadInput = Partial<CreateActividadInput>;
+```
+
+### Plantilla
+```typescript
+interface Plantilla {
+  id: string;
+  title: string;
+  description: string;
+  category: string;                     // Categoría dinámica (ej: "Matemáticas", "Lenguaje")
+  activityType: string;                 // Tipo de actividad (ej: "cuestionario")
+  downloadUrl?: string;                 // URL para descargar plantilla
+  previewUrl?: string;                  // URL de preview
+  content?: Record<string, unknown>;    // Contenido preparado de la plantilla
+  createdAt: Date | null;
+  updatedAt: Date | null;
+}
+
+interface CreatePlantillaInput {
+  title: string;
+  description: string;
+  category: string;
+  activityType: string;
+  downloadUrl?: string;
+  previewUrl?: string;
+  content?: Record<string, unknown>;
+}
+
+type UpdatePlantillaInput = Partial<CreatePlantillaInput>;
+```
+
+### Guía
+```typescript
+type GuiaTipo = "plataforma" | "recurso-oficial";
+type GuiaAction = "download" | "link";
+
+interface Guia {
+  id: string;
+  title: string;
+  description: string;
+  tipo: GuiaTipo;
+  action: GuiaAction;                   // Si es descarga o link externo
+  url: string;
+  meta?: string;                        // Metadatos adicionales (ej: versión, autor)
+  createdAt: Date | null;
+  updatedAt: Date | null;
+}
+
+interface CreateGuiaInput {
+  title: string;
+  description: string;
+  tipo: GuiaTipo;
+  action: GuiaAction;
+  url: string;
+  meta?: string;
+}
+
+type UpdateGuiaInput = Partial<CreateGuiaInput>;
+```
+
+### Usuario
+```typescript
+interface User {
+  uid: string;
+  email: string;
+  emailVerified: boolean;
+  displayName?: string;                 // Apodo del usuario
+}
+
+// Documento base en Firestore Usuarios/{uid}
+interface UserDocument {
+  email: string;
+  displayName?: string;
+  language: "es" | "en";               // Idioma preferido
+  colorblindMode: boolean;              // Modo daltonismo activado
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+```
+
+---
+
+## 8. Constantes y catálogos
+
+### Colecciones Firebase
+```typescript
+const COLECCIONES = {
+  GUIAS: "Guias",                       // Colección pública
+  USUARIOS: "Usuarios",                 // Raíz de usuarios
+  PLANTILLAS: "Plantillas",             // Colección pública
+  MIS_ACTIVIDADES: "MisActividades",    // Subcolección en Usuarios/{uid}/
+};
+```
+
+### Tipos de actividad
+```typescript
+const ACTIVIDADES = {
+  1: { Actividad: "Cuestionario", color: "bg-blue-100 text-blue-800" },
+  2: { Actividad: "Verdadero/Falso", color: "bg-green-100 text-green-800" },
+  // Potenciales futuros: "union-conceptos", "lectura", "video-guia"
+};
+```
+
+### Secciones del editor
+```typescript
+const EDITOR_SECTION_CATALOG = {
+  objetivo: "Objetivo",
+  contenido: "Contenido",
+  retroalimentacion: "Retroalimentacion",
+  paleta: "Paleta de colores",
+  evaluacion: "Evaluacion",
+  descargar: "Descargar",
+} as const;
+
+type EditorSectionId = keyof typeof EDITOR_SECTION_CATALOG;
+```
+
+### Configuración de tipos de actividad
+```typescript
+const EDITOR_ACTIVITY_CONFIG: Record<string, ActivityEditorConfig> = {
+  cuestionario: {
+    label: "Cuestionario",
+    sections: ["objetivo", "contenido", "retroalimentacion", "paleta", "evaluacion", "descargar"],
+  },
+  "verdadero-falso": {
+    label: "Verdadero - Falso",
+    sections: ["objetivo", "contenido", "retroalimentacion", "evaluacion", "descargar"],
+  },
+  // Otros tipos disponibles pero no aún funcionales
+  lectura: { /* ... */ },
+  "video-guia": { /* ... */ },
+  "union-conceptos": { /* ... */ },
+};
+```
+
+### Funciones de validación
+```typescript
+isValidTipoActividad(tipoActividad: string): boolean
+getActivityLabel(tipoActividad: string): string
+getSectionsByActivity(tipoActividad: string): Array<{ id: EditorSectionId; label: string }>
+getDefaultSection(tipoActividad: string): EditorSectionId | null
+isValidSectionForActivity(tipoActividad: string, seccion: string): boolean
+isEditorRoute(pathname?: string | null): boolean
+```
+
+---
+
+## 9. Estructura de documentos Firestore
+
+### Usuarios/{uid}
+```
+{
+  email: string,
+  displayName?: string,
+  language: "es" | "en" (default: "es"),
+  colorblindMode: boolean (default: false),
+  createdAt: Timestamp,
+  updatedAt: Timestamp
+}
+```
+
+### Usuarios/{uid}/MisActividades/{actividadId}
+```
+{
+  type: string (ej: "cuestionario", "verdadero-falso"),
+  subject: string (ej: "Matemáticas"),
+  title: string (ej: "Ecuaciones de primer grado"),
+  score: number (default: 0),
+  payload: {
+    // Estructura específica por tipo de actividad
+    // Para cuestionario: { questions: [], instructions: "", etc. }
+  },
+  createdAt: Timestamp,
+  updatedAt: Timestamp
+}
+```
+
+### Plantillas/{plantillaId}
+```
+{
+  title: string,
+  description: string,
+  category: string (ej: "Matemáticas", "Lenguaje"),
+  activityType: string (ej: "cuestionario"),
+  downloadUrl?: string,
+  previewUrl?: string,
+  content?: {
+    // Datos pre-rellenados que se pueden copiar a una nueva actividad
+  },
+  createdAt: Timestamp,
+  updatedAt: Timestamp
+}
+```
+
+### Guias/{guiaId}
+```
+{
+  title: string,
+  description: string,
+  tipo: "plataforma" | "recurso-oficial",
+  action: "download" | "link",
+  url: string (ruta de descarga o URL externa),
+  meta?: string (ej: "v1.2.0", "autor: Equipo EduGuias"),
+  createdAt: Timestamp,
+  updatedAt: Timestamp
+}
+```
+
+---
+
+## 10. Validaciones y restricciones
+
+### Campos requeridos
+| Entidad | Campo | Restricción | Ejemplo |
+|---------|-------|-------------|---------|
+| Actividad | type | No vacío, válido según EDITOR_ACTIVITY_CONFIG | "cuestionario" |
+| Actividad | title | No vacío, máx 200 caracteres | "Mi actividad" |
+| Actividad | subject | No vacío | "Matemáticas" |
+| Plantilla | title | No vacío, máx 150 caracteres | "Plantilla multiplicación" |
+| Plantilla | activityType | Debe existir en EDITOR_ACTIVITY_CONFIG | "cuestionario" |
+| Guia | tipo | "plataforma" \| "recurso-oficial" | "plataforma" |
+| Guia | action | "download" \| "link" | "download" |
+
+### Validaciones de accesibilidad (Futuro - /mis-actividades/[tipoActividad]/[seccion])
+- **WCAG AA Contraste**: Texto en paleta debe tener ratio ≥ 4.5:1
+- **UDL Longitud**: Instrucciones máx 500 caracteres, preguntas máx 300 caracteres
+- **Accesibilidad cognitiva**: Vocabulario simple, oraciones cortas
+
+### Tipado por union discriminada (Futuro)
+```typescript
+type ActivityBase = {
+  type: "cuestionario" | "verdadero-falso" | "lectura" | "video-guia" | "union-conceptos";
+  title: string;
+  subject: string;
+};
+
+type CuestionarioActivity = ActivityBase & {
+  type: "cuestionario";
+  payload: {
+    questions: Question[];
+    instructions: string;
+  };
+};
+
+type VerdaderoFalsoActivity = ActivityBase & {
+  type: "verdadero-falso";
+  payload: {
+    statements: Statement[];
+  };
+};
+
+type Activity = CuestionarioActivity | VerdaderoFalsoActivity | /* otros tipos */;
+```
+
+---
+
+## 11. Firestore Security Rules
+
+### Principios actuales
+- Usuarios NO pueden escribir en Guías ni Plantillas (solo lectura)
+- Usuarios SOLO pueden leer sus propias actividades (Usuarios/{uid}/MisActividades/*)
+- Usuarios SOLO pueden crear/update/delete en su propia colección
+
+### Reglas (pseudocódigo)
+```
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Guías: lectura pública, escritura solo admin
+    match /Guias/{document=**} {
+      allow read: if true;
+      allow write: if request.auth.uid == "admin-uid";
+    }
+
+    // Plantillas: lectura pública, escritura solo admin
+    match /Plantillas/{document=**} {
+      allow read: if true;
+      allow write: if request.auth.uid == "admin-uid";
+    }
+
+    // Usuarios y actividades: lectura/escritura solo propietario
+    match /Usuarios/{uid} {
+      allow read, write: if request.auth.uid == uid;
+      
+      match /MisActividades/{activityId} {
+        allow read, write: if request.auth.uid == uid;
+      }
+    }
+  }
+}
+```
+
+---
+
+## 12. Flujo de datos (ejemplos)
+
+### Flujo deseado: Crear nueva actividad
+1. Usuario hace click en tipo de actividad en `/mis-actividades/actividades`
+2. Se navega a `/mis-actividades/[tipoActividad]?actividadId=new`
+3. Usuario completa secciones (Contenido, Paleta, etc.)
+4. En la sección de paleta y cuando todo este correcto presiona el boton "Guardar y revisar"
+5. Inmediatamente:
+   - Se dispara `createActividad({ type, subject, title, payload })`
+   - El store llama `createActividadByUser(uid, data)` (servicio)
+   - Firebase genera `id` del documento
+   - `selectedActividad` se actualiza en store
+   - `actividadId` se preserva en query params
+   - se actualiza el payload con toda la actividad
+6. En Descargar, se genera archivo con `selectedActividad` completa ya sea en HTML+JS+CSS o SCORM (segun elección del usuario)
+
+### Flujo deseado: Microtips/consejos en EditSideBar
+1. En cada sección se revisara el contenido que coloca el usuario en los campos disponibles para poder mostrar el microtip/consejo
+ - Objetivos (UDL: longitud del texto)
+ - Contenido (UDL: longitud del texto y WCAG: texto alternativo en imagenes)
+ - Retroalimentación (UDL: longitud del texto)
+ - Colores/paleta (WCAG: contraste en colores, tamaño de letra)
+
+### Flujo: Editar actividad existente
+1. Usuario hace click en card de actividad en `/mis-actividades`
+2. Se dispara `fetchActividadById(uid, actividadId)`
+3. Se navega a `/mis-actividades/[tipoActividad]?actividadId=...`
+4. En cada sección, `selectedActividad.payload` se carga en componentes
+5. Cambios se guardan con `updateActividad(uid, actividadId, { payload })`
+6. En la sección de paleta y cuando todo este correcto presiona el boton "Guardar y revisar"
+7. `updatedAt` se actualiza en Firebase
+
+### Flujo: Cargar plantilla como base
+1. Usuario selecciona plantilla en `/plantillas`
+2. Se hace copia: `createActividad({ ...plantilla.content })`
+3. Nueva actividad se abre en editor
+4. Usuario personaliza los campos
+
+
+
+### Flujo: Cargar guía
+1. Usuario entra a `/guias`
+2. Se dispara `fetchGuias()` o `fetchGuiasByTipo("plataforma")`
+3. Se renderizan tarjetas con título, descripción
+4. Click en tarjeta:
+   - Si `action === "download"`: descarga archivo
+   - Si `action === "link"`: abre `url` en nueva pestaña
+
+---
+
+## 13. Componentes del editor (por sección)
+
+### Componentes actuales
+- **ObjetivoPage**: Editor de objetivo y competencias
+- **ContenidoPage**: Editor de preguntas/contenido principal
+- **PaletaPage** (ColoresPage): Selector de colores con validación WCAG
+- **EvaluacionPage**: Configuración de evaluación y puntuación
+- **RetroalimentacionPage**: Mensajes post-respuesta
+- **DescargaPage**: Generador de descarga
+
+### Estructura esperada
+Cada componente recibe:
+```typescript
+{
+  selectedActividad: Actividad | null,
+  loading: boolean,
+  error: string | null,
+  onUpdate: (payload: Record<string, unknown>) => void,
+  onNext: () => void,
+  onPrev: () => void,
+}
+```
+
+---
+
+## 14. Rate limiting y anti-duplicación
+
+### Implementación (Stores)
+```typescript
+// Lectura: Cooldown 800ms + in-flight dedupe
+const FETCH_COOLDOWN_MS = 800;
+const userFetchTimestamps = new Map<string, number>();
+const userFetchInFlight = new Map<string, Promise<void>>();
+
+// Escritura: In-flight dedupe por operación
+const createInFlight = new Map<string, Promise<Actividad>>();
+const updateInFlight = new Map<string, Promise<void>>();
+const deleteInFlight = new Map<string, Promise<void>>();
+```
+
+### Flujo de protección
+1. **Lectura**: Si < 800ms desde último fetch → return early; Si en-flight → return promise; Else → fetch + cache
+2. **Escritura**: Si en-flight con mismo payload/id → return promise; Else → execute + cache
+
+---
+
+## 15. Próximos pasos técnicos
+
+### Para implementar
+- [ ] Tipado con union discriminada de Activities (Section 10)
+- [ ] Validaciones de WCAG/UDL antes de guardar
+- [ ] Firestore Rules definitivas
+- [ ] Estado `submitting` por operación (UI feedback)
+- [ ] Full payload persistence en editor steps
+- [ ] Integración de traductor i18n (idioma + modo daltonismo)
+- [ ] Creación de actividad y descarga en los formatos anteriormente mencionados
 ---
 
