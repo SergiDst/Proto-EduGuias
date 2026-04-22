@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuthStore } from "@/stores/authStore";
 import { useUiStore } from "@/stores/uiStore";
+import { isEditorRoute } from "@/constants/editorRouting";
 
 const LogoIcon = () => (
     <svg width="28" height="23" viewBox="0 0 28 23" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -49,13 +50,13 @@ export default function Header() {
     const logout = useAuthStore((state) => state.logout);
     const headerVisible = useUiStore((state) => state.headerVisible);
     const setHeaderVisible = useUiStore((state) => state.setHeaderVisible);
-    const isEditorRoute = pathname?.startsWith("/mis-actividades/editorActividades");
+    const inEditorRoute = isEditorRoute(pathname);
 
     useEffect(() => {
-        setHeaderVisible(!isEditorRoute);
-    }, [isEditorRoute, setHeaderVisible]);
+        setHeaderVisible(!inEditorRoute);
+    }, [inEditorRoute, setHeaderVisible]);
 
-    if (!headerVisible || isEditorRoute) {
+    if (!headerVisible || inEditorRoute) {
         return null;
     }
 

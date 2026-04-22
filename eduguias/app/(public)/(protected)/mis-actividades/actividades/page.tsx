@@ -82,7 +82,7 @@ const templates = [
         bg: "bg-blue-50",
         iconColor: "#135BEC",
         icon: CuestionarioIcon,
-        route: "/mis-actividades/editorActividades/",
+        editorType: "cuestionario",
     },
     {
         id: "union",
@@ -91,7 +91,7 @@ const templates = [
         bg: "bg-purple-50",
         iconColor: "#9333EA",
         icon: UnionConceptosIcon,
-        route: "/mis-actividades/editorActividades/",
+        editorType: "union-conceptos",
     },
     {
         id: "lectura",
@@ -100,7 +100,7 @@ const templates = [
         bg: "bg-yellow-50",
         iconColor: "#D97706",
         icon: LecturaIcon,
-        route: "/mis-actividades/editorActividades/",
+        editorType: "lectura",
     },
     {
         id: "video",
@@ -109,7 +109,7 @@ const templates = [
         bg: "bg-rose-50",
         iconColor: "#E11D48",
         icon: VideoGuiaIcon,
-        route: "/mis-actividades/editorActividades/",
+        editorType: "video-guia",
     },
     {
         id: "verdadero",
@@ -118,7 +118,7 @@ const templates = [
         bg: "bg-teal-50",
         iconColor: "#0D9488",
         icon: VerdaderoFalsoIcon,
-        route: "/mis-actividades/editorActividades/",
+        editorType: "verdadero-falso",
     },
 ];
 
@@ -215,7 +215,7 @@ export default function EligePlantilla() {
                                             {tpl.description}
                                         </p>
                                     </div>
-                                    <button onClick={() => handleNavigate(tpl.route)} className="w-full font-[Lexend] text-sm font-semibold text-white bg-[#135BEC] rounded-xl py-2.5 hover:bg-blue-700 transition-colors shadow-[0_4px_6px_-1px_rgba(19,91,236,0.15)]">
+                                    <button onClick={() => handleNavigate(`/mis-actividades/${tpl.editorType}`)} className="w-full font-[Lexend] text-sm font-semibold text-white bg-[#135BEC] rounded-xl py-2.5 hover:bg-blue-700 transition-colors shadow-[0_4px_6px_-1px_rgba(19,91,236,0.15)]">
                                         Seleccionar plantilla
                                     </button>
                                 </div>
