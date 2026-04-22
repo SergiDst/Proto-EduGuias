@@ -7,13 +7,11 @@ import { ResourceCard, ResourceCardProps } from "@/components/ResourceCard";
 import { useGuiasStore } from "@/stores/guiasStore";
 
 export default function Guias() {
-  const { guias, loading, error, fetched, fetchGuias } = useGuiasStore((state) => ({
-    guias: state.guias,
-    loading: state.loading,
-    error: state.error,
-    fetched: state.fetched,
-    fetchGuias: state.fetchGuias,
-  }));
+  const guias = useGuiasStore((state) => state.guias);
+  const loading = useGuiasStore((state) => state.loading);
+  const error = useGuiasStore((state) => state.error);
+  const fetched = useGuiasStore((state) => state.fetched);
+  const fetchGuias = useGuiasStore((state) => state.fetchGuias);
 
   useEffect(() => {
     fetchGuias().catch(() => undefined);

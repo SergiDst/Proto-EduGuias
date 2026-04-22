@@ -147,23 +147,13 @@ export default function EligePlantilla() {
 
     const router = useRouter();
     const setHeaderVisble = useUiStore((state) => state.setHeaderVisible);
-    const { user, authReady } = useAuthStore((state) => ({
-        user: state.user,
-        authReady: state.authReady,
-    }));
-    const {
-        actividades,
-        loading,
-        error,
-        fetchActividadesByUser,
-        fetchActividadById,
-    } = useActividadesStore((state) => ({
-        actividades: state.actividades,
-        loading: state.loading,
-        error: state.error,
-        fetchActividadesByUser: state.fetchActividadesByUser,
-        fetchActividadById: state.fetchActividadById,
-    }));
+    const user = useAuthStore((state) => state.user);
+    const authReady = useAuthStore((state) => state.authReady);
+    const actividades = useActividadesStore((state) => state.actividades);
+    const loading = useActividadesStore((state) => state.loading);
+    const error = useActividadesStore((state) => state.error);
+    const fetchActividadesByUser = useActividadesStore((state) => state.fetchActividadesByUser);
+    const fetchActividadById = useActividadesStore((state) => state.fetchActividadById);
 
     useEffect(() => {
         if (!authReady || !user?.uid) {

@@ -35,23 +35,13 @@ const formatDate = (date: Date | null) => {
 
 export default function MisActividades() {
   const router = useRouter();
-  const { user, authReady } = useAuthStore((state) => ({
-    user: state.user,
-    authReady: state.authReady,
-  }));
-  const {
-    actividades,
-    loading,
-    error,
-    fetched,
-    fetchActividadesByUser,
-  } = useActividadesStore((state) => ({
-    actividades: state.actividades,
-    loading: state.loading,
-    error: state.error,
-    fetched: state.fetched,
-    fetchActividadesByUser: state.fetchActividadesByUser,
-  }));
+  const user = useAuthStore((state) => state.user);
+  const authReady = useAuthStore((state) => state.authReady);
+  const actividades = useActividadesStore((state) => state.actividades);
+  const loading = useActividadesStore((state) => state.loading);
+  const error = useActividadesStore((state) => state.error);
+  const fetched = useActividadesStore((state) => state.fetched);
+  const fetchActividadesByUser = useActividadesStore((state) => state.fetchActividadesByUser);
 
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 

@@ -1,3 +1,5 @@
+'use client';
+
 import Link from "next/link";
 import { QuizIcon, ConceptMapIcon, ReadingIcon, VideoIcon, DotsIcon } from "@/components/InicioIcons";
 import { ActivityRowIcon } from "@/components/ActivityRowIcon";
@@ -67,23 +69,13 @@ const formatDate = (date: Date | null) => {
 /* ── Page ── */
 export default function InicioPage() {
 	const router = useRouter();
-	const { user, authReady } = useAuthStore((state) => ({
-		user: state.user,
-		authReady: state.authReady,
-	}));
-	const {
-		actividades,
-		loading,
-		error,
-		fetchActividadesByUser,
-		fetchActividadById,
-	} = useActividadesStore((state) => ({
-		actividades: state.actividades,
-		loading: state.loading,
-		error: state.error,
-		fetchActividadesByUser: state.fetchActividadesByUser,
-		fetchActividadById: state.fetchActividadById,
-	}));
+	const user = useAuthStore((state) => state.user);
+	const authReady = useAuthStore((state) => state.authReady);
+	const actividades = useActividadesStore((state) => state.actividades);
+	const loading = useActividadesStore((state) => state.loading);
+	const error = useActividadesStore((state) => state.error);
+	const fetchActividadesByUser = useActividadesStore((state) => state.fetchActividadesByUser);
+	const fetchActividadById = useActividadesStore((state) => state.fetchActividadById);
 
 	useEffect(() => {
 		if (!authReady || !user?.uid) {

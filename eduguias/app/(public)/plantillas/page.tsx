@@ -65,19 +65,11 @@ const normalizeType = (value: string) => value.trim().toLowerCase();
 export default function Plantillas() {
   const [activeCategory, setActiveCategory] = useState("Todas las áreas");
   const [searchQuery, setSearchQuery] = useState("");
-  const {
-    plantillas,
-    loading,
-    error,
-    fetched,
-    fetchPlantillas,
-  } = usePlantillasStore((state) => ({
-    plantillas: state.plantillas,
-    loading: state.loading,
-    error: state.error,
-    fetched: state.fetched,
-    fetchPlantillas: state.fetchPlantillas,
-  }));
+  const plantillas = usePlantillasStore((state) => state.plantillas);
+  const loading = usePlantillasStore((state) => state.loading);
+  const error = usePlantillasStore((state) => state.error);
+  const fetched = usePlantillasStore((state) => state.fetched);
+  const fetchPlantillas = usePlantillasStore((state) => state.fetchPlantillas);
 
   useEffect(() => {
     fetchPlantillas().catch(() => undefined);
