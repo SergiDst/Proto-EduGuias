@@ -1,6 +1,10 @@
 'use client';
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+
+import type { CuestionarioPayload } from "@/interfaces/actividades";
+import { useActividadesStore } from "@/stores/actividadesStore";
+import { useUiStore } from "@/stores/uiStore";
 
 interface RetroalimentacionStepProps {
   onNext: () => void;
@@ -24,9 +28,57 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean
 }
 
 export function RetroalimentacionStep({ onNext, onPrev }: RetroalimentacionStepProps) {
-  const [feedbackType, setFeedbackType] = useState<"inmediato" | "finalizar">("inmediato");
-  const [showCorrect, setShowCorrect] = useState(true);
+  const questionnaireDraft = useActividadesStore((state) => state.questionnaireDraft);
+  const setQuestionnaireDraft = useActividadesStore((state) => state.setQuestionnaireDraft);
+  const setEditorSectionCompleted = useUiStore((state) => state.setEditorSectionCompleted);
   const [showExplanations, setShowExplanations] = useState(true);
+  const feedbackType: "inmediato" | "finalizar" =
+    questionnaireDraft?.feedbackMode === "at-end" ? "finalizar" : "inmediato";
+  const showCorrect = questionnaireDraft?.showCorrectAnswers ?? true;
+  const generalMessage = questionnaireDraft?.generalMessage ?? "";
+
+  const updateDraft = (updater: (current: CuestionarioPayload) => CuestionarioPayload) => {
+    const baseDraft: CuestionarioPayload = questionnaireDraft ?? {
+      objective: "",
+      instructions: "",
+      questions: [],
+      feedbackMode: "per-question",
+      showCorrectAnswers: true,
+      generalMessage: "",
+    };
+
+    setQuestionnaireDraft(updater(baseDraft));
+  };
+
+  const updateFeedbackType = (value: "inmediato" | "finalizar") => {
+    updateDraft((currentDraft) => ({
+      ...currentDraft,
+      feedbackMode: value === "inmediato" ? "per-question" : "at-end",
+    }));
+  };
+
+  const updateShowCorrect = (value: boolean) => {
+    updateDraft((currentDraft) => ({
+      ...currentDraft,
+      showCorrectAnswers: value,
+    }));
+  };
+
+  const updateGeneralMessage = (value: string) => {
+    updateDraft((currentDraft) => ({
+      ...currentDraft,
+      generalMessage: value,
+    }));
+  };
+
+  const isRetroalimentacionValid = useMemo(
+    () => generalMessage.trim().length >= 10,
+    [generalMessage]
+  );
+
+  useEffect(() => {
+    setEditorSectionCompleted("retroalimentacion", isRetroalimentacionValid);
+  }, [isRetroalimentacionValid, setEditorSectionCompleted]);
 
   return (
     <div className="flex flex-col gap-8">
@@ -53,7 +105,7 @@ export function RetroalimentacionStep({ onNext, onPrev }: RetroalimentacionStepP
           {/* Inmediato */}
           <button
             type="button"
-            onClick={() => setFeedbackType("inmediato")}
+            onClick={() => updateFeedbackType("inmediato")}
             className={`relative flex flex-col p-4 rounded-xl border-2 text-left transition-all ${feedbackType === "inmediato" ? "border-[#135BEC] bg-[rgba(19,91,236,0.05)]" : "border-[#F1F5F9]"}`}
           >
             <div className="mb-1 font-lexend text-base font-bold text-[#0F172A]">Inmediato</div>
@@ -70,7 +122,7 @@ export function RetroalimentacionStep({ onNext, onPrev }: RetroalimentacionStepP
           {/* Al finalizar */}
           <button
             type="button"
-            onClick={() => setFeedbackType("finalizar")}
+            onClick={() => updateFeedbackType("finalizar")}
             className={`relative flex flex-col p-4 rounded-xl border-2 text-left transition-all ${feedbackType === "finalizar" ? "border-[#135BEC] bg-[rgba(19,91,236,0.05)]" : "border-[#F1F5F9]"}`}
           >
             <div className="mb-1 font-lexend text-base font-bold text-[#0F172A]">Al finalizar</div>
@@ -101,7 +153,7 @@ export function RetroalimentacionStep({ onNext, onPrev }: RetroalimentacionStepP
               <div className="font-lexend text-base font-medium text-[#0F172A]">Respuestas correctas</div>
               <div className="font-lexend text-sm text-[#64748B]">Resaltar la respuesta correcta cuando se selecciona una respuesta erronea</div>
             </div>
-            <Toggle checked={showCorrect} onChange={setShowCorrect} />
+            <Toggle checked={showCorrect} onChange={updateShowCorrect} />
           </div>
           <div className="flex justify-between items-center py-2 border-b border-[#F8FAFC]">
             <div>
@@ -126,6 +178,8 @@ export function RetroalimentacionStep({ onNext, onPrev }: RetroalimentacionStepP
             Mensaje personalizado mostrado en la pantalla de resultados
           </p>
           <textarea
+            value={generalMessage}
+            onChange={(event) => updateGeneralMessage(event.target.value)}
             className="w-full min-h-24 p-4 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] font-lexend text-base text-[#6B7280] placeholder-[#6B7280] focus:outline-none focus:ring-2 focus:ring-[#135BEC] focus:border-transparent resize-none"
             placeholder="Ej: ¡Excelente trabajo completando el módulo! Revisa los recursos a continuación para un estudio adicional."
           />
@@ -145,7 +199,10 @@ export function RetroalimentacionStep({ onNext, onPrev }: RetroalimentacionStepP
         </button>
         <button
           onClick={onNext}
-          className="flex items-center gap-2 px-8 py-3 rounded-xl bg-[#135BEC] text-white font-lexend font-bold text-base hover:bg-[#0f4fd1] transition-colors shadow-lg shadow-[rgba(19,91,236,0.2)]"
+          disabled={!isRetroalimentacionValid}
+          className={`flex items-center gap-2 px-8 py-3 rounded-xl text-white font-lexend font-bold text-base transition-colors shadow-lg shadow-[rgba(19,91,236,0.2)] ${
+            isRetroalimentacionValid ? "bg-[#135BEC] hover:bg-[#0f4fd1]" : "bg-[#94A3B8] cursor-not-allowed"
+          }`}
         >
           Siguiente
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">

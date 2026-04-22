@@ -1,6 +1,9 @@
+"use client";
+
 import Link from "next/link";
 import type { ReactElement } from "react";
 import { EditorSectionId, getActivityLabel, getSectionsByActivity } from "@/constants/editorRouting";
+import { useUiStore } from "@/stores/uiStore";
 
 const navIcons: Record<EditorSectionId, ReactElement> = {
     objetivo: (
@@ -46,6 +49,26 @@ const navIcons: Record<EditorSectionId, ReactElement> = {
 
 export default function EditNavbar({ progress, tipoActividad, seccionActual }: { progress: number; tipoActividad: string; seccionActual?: string }) {
     const navItems = getSectionsByActivity(tipoActividad);
+    const completion = useUiStore((state) => state.editorSectionCompletion);
+    const requiredSections = new Set<EditorSectionId>(["objetivo", "contenido", "retroalimentacion", "paleta"]);
+
+    const isSectionLocked = (targetId: EditorSectionId): boolean => {
+        const targetIndex = navItems.findIndex((item) => item.id === targetId);
+        const currentIndex = navItems.findIndex((item) => item.id === seccionActual);
+
+        if (targetIndex <= currentIndex) {
+            return false;
+        }
+
+        for (let i = 0; i < targetIndex; i += 1) {
+            const previousId = navItems[i]?.id;
+            if (previousId && requiredSections.has(previousId) && !completion[previousId]) {
+                return true;
+            }
+        }
+
+        return false;
+    };
 
     return (
         <aside className="w-55 shrink-0 bg-white border-r border-slate-200 flex flex-col">
@@ -61,13 +84,23 @@ export default function EditNavbar({ progress, tipoActividad, seccionActual }: {
             <nav className="flex flex-col gap-1 px-3 py-4 flex-1">
                 {navItems.map((item) => {
                     const active = seccionActual === item.id;
+                    const locked = isSectionLocked(item.id);
                     return (
                         <Link
                             key={item.id}
-                            href={`/mis-actividades/${tipoActividad}/${item.id}`}
-                            className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-left transition-colors ${active
-                                ? "bg-blue-50 text-[#135BEC]"
-                                : "text-[#475569] hover:bg-slate-50 hover:text-[#0F172A]"
+                            href={locked ? "#" : `/mis-actividades/${tipoActividad}/${item.id}`}
+                            aria-disabled={locked}
+                            onClick={(event) => {
+                                if (locked) {
+                                    event.preventDefault();
+                                }
+                            }}
+                            className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-left transition-colors ${
+                                active
+                                    ? "bg-blue-50 text-[#135BEC]"
+                                    : locked
+                                        ? "text-[#94A3B8] cursor-not-allowed opacity-60"
+                                        : "text-[#475569] hover:bg-slate-50 hover:text-[#0F172A]"
                                 }`}
                         >
                             <span className={active ? "text-[#135BEC]" : "text-[#94A3B8]"}>

@@ -1,4 +1,10 @@
 import { COLECCIONES } from "@/constants/DocumentosColecciones";
+import {
+    Actividad,
+    ActivityType,
+    CreateActividadInput,
+    UpdateActividadInput,
+} from "@/interfaces/actividades";
 import { db } from "@/lib/firestore";
 import {
     addDoc,
@@ -14,26 +20,7 @@ import {
     updateDoc,
 } from "firebase/firestore";
 
-export interface Actividad {
-    id: string;
-    type: string;
-    subject: string;
-    title: string;
-    score: number;
-    createdAt: Date | null;
-    updatedAt: Date | null;
-    payload?: Record<string, unknown>;
-}
-
-export interface CreateActividadInput {
-    type: string;
-    subject: string;
-    title: string;
-    score?: number;
-    payload?: Record<string, unknown>;
-}
-
-export type UpdateActividadInput = Partial<CreateActividadInput>;
+export type { Actividad, CreateActividadInput, UpdateActividadInput } from "@/interfaces/actividades";
 
 const usersCollection = COLECCIONES.USUARIOS;
 const activitiesCollection = COLECCIONES.MIS_ACTIVIDADES;
@@ -50,12 +37,19 @@ const toDate = (value: unknown): Date | null => {
     return null;
 };
 
+const isActivityType = (value: unknown): value is ActivityType =>
+    value === "cuestionario" ||
+    value === "verdadero-falso" ||
+    value === "lectura" ||
+    value === "video-guia" ||
+    value === "union-conceptos";
+
 const mapActividad = (
     id: string,
     data: Record<string, unknown>
 ): Actividad => ({
     id,
-    type: typeof data.type === "string" ? data.type : "",
+    type: isActivityType(data.type) ? data.type : "cuestionario",
     subject: typeof data.subject === "string" ? data.subject : "",
     title: typeof data.title === "string" ? data.title : "",
     score: typeof data.score === "number" ? data.score : 0,
@@ -63,7 +57,7 @@ const mapActividad = (
     updatedAt: toDate(data.updatedAt),
     payload:
         data.payload && typeof data.payload === "object"
-            ? (data.payload as Record<string, unknown>)
+            ? (data.payload as Actividad["payload"])
             : undefined,
 });
 

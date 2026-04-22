@@ -1,8 +1,14 @@
-import { Actividad, CreateActividadInput, UpdateActividadInput } from "@/services/actividadesServices";
+import {
+    Actividad,
+    CreateActividadInput,
+    CuestionarioPayload,
+    UpdateActividadInput,
+} from "@/interfaces/actividades";
 
 export interface ActividadesStore {
     actividades: Actividad[];
     selectedActividad: Actividad | null;
+    questionnaireDraft: CuestionarioPayload | null;
     loading: boolean;
     error: string | null;
     fetched: boolean;
@@ -14,8 +20,11 @@ export interface ActividadesStore {
         actividadId: string,
         data: UpdateActividadInput
     ) => Promise<void>;
+    setQuestionnaireDraft: (payload: CuestionarioPayload) => void;
+    updateSelectedActividadPayload: (payload: CuestionarioPayload) => void;
     deleteActividad: (uid: string, actividadId: string) => Promise<void>;
     clearSelectedActividad: () => void;
+    clearQuestionnaireDraft: () => void;
     clearError: () => void;
     reset: () => void;
 }

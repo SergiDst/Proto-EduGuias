@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { ActividadesStore } from "@/interfaces/actividadesStore";
+import type { CuestionarioPayload } from "@/interfaces/actividades";
 import { getFirebaseErrorMessage } from "@/utils/firebaseErrors";
 import {
     createActividadByUser,
@@ -21,6 +22,7 @@ const deleteInFlight = new Map<string, Promise<void>>();
 const initialState = {
     actividades: [],
     selectedActividad: null,
+    questionnaireDraft: null,
     loading: false,
     error: null as string | null,
     fetched: false,
@@ -88,7 +90,14 @@ export const useActividadesStore = create<ActividadesStore>((set, get) => ({
         try {
             const actividad = await getActividadById(uid, actividadId);
             byIdFetchTimestamps.set(key, Date.now());
-            set({ selectedActividad: actividad, loading: false });
+            set({
+                selectedActividad: actividad,
+                questionnaireDraft:
+                    actividad?.type === "cuestionario" && actividad.payload
+                        ? (actividad.payload as CuestionarioPayload)
+                        : null,
+                loading: false,
+            });
             return actividad;
         } catch (error) {
             set({
@@ -188,6 +197,35 @@ export const useActividadesStore = create<ActividadesStore>((set, get) => ({
         return request;
     },
 
+    setQuestionnaireDraft: (payload: CuestionarioPayload) => {
+        set((state) => {
+            const updatedActividad =
+                state.selectedActividad?.type === "cuestionario"
+                    ? {
+                          ...state.selectedActividad,
+                          payload,
+                      }
+                    : state.selectedActividad;
+
+            return {
+                questionnaireDraft: payload,
+                selectedActividad: updatedActividad,
+                actividades: state.actividades.map((actividad) =>
+                    actividad.id === updatedActividad?.id
+                        ? {
+                              ...actividad,
+                              payload,
+                          }
+                        : actividad
+                ),
+            };
+        });
+    },
+
+    updateSelectedActividadPayload: (payload: CuestionarioPayload) => {
+        get().setQuestionnaireDraft(payload);
+    },
+
     deleteActividad: async (uid, actividadId) => {
         const key = `${uid}:${actividadId}`;
         const existingRequest = deleteInFlight.get(key);
@@ -227,7 +265,11 @@ export const useActividadesStore = create<ActividadesStore>((set, get) => ({
     },
 
     clearSelectedActividad: () => {
-        set({ selectedActividad: null });
+        set({ selectedActividad: null, questionnaireDraft: null });
+    },
+
+    clearQuestionnaireDraft: () => {
+        set({ questionnaireDraft: null });
     },
 
     clearError: () => {

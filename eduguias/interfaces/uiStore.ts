@@ -1,3 +1,5 @@
+import type { EditorSectionId } from "@/constants/editorRouting";
+
 export interface GlobalModalState {
     titulo: string;
     descripcion: string;
@@ -11,6 +13,9 @@ export interface GlobalModalState {
 export interface UiStore {
     globalModal: GlobalModalState;
     headerVisible: boolean;
+    editorSectionCompletion: Partial<Record<EditorSectionId, boolean>>;
     setGlobalModal: (modal: Partial<GlobalModalState>) => void;
     setHeaderVisible: (visible: boolean) => void;
+    setEditorSectionCompleted: (section: EditorSectionId, completed: boolean) => void;
+    resetEditorSectionCompletion: () => void;
 }

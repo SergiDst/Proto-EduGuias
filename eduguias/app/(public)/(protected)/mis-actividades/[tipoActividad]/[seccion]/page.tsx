@@ -1,11 +1,11 @@
 'use client'
 
-import { ColoresStep } from "@/components/ColoresPage";
 import { ContenidoStep } from "@/components/ContenidoPage";
 import { DescargaStep } from "@/components/DescargaPage";
 import { EvaluacionStep } from "@/components/EvaluacionPage";
-import { ObjetivoStep } from "@/components/ObjetivoPage";
+import { ObjetivoStep } from "../../../../../../components/ObjetivoPage";
 import { RetroalimentacionStep } from "@/components/RetroalimentacionPage";
+import { ColoresStep } from "../../../../../../components/ColoresPage";
 import {
     EDITOR_SECTION_CATALOG,
     getActivityLabel,
@@ -15,8 +15,11 @@ import {
 } from "@/constants/editorRouting";
 import { useAuthStore } from "@/stores/authStore";
 import { useActividadesStore } from "@/stores/actividadesStore";
+import { useUiStore } from "@/stores/uiStore";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
+
+const REQUIRED_SECTIONS = new Set(["objetivo", "contenido", "retroalimentacion", "paleta"]);
 
 export default function EditorSeccionPage() {
     const params = useParams<{ tipoActividad: string; seccion: string }>();
@@ -27,6 +30,27 @@ export default function EditorSeccionPage() {
     const actividadId = searchParams.get("actividadId");
     const user = useAuthStore((state) => state.user);
     const fetchActividadById = useActividadesStore((state) => state.fetchActividadById);
+    const completion = useUiStore((state) => state.editorSectionCompletion);
+    const sections = useMemo(
+        () => (tipoActividad ? getSectionsByActivity(tipoActividad) : []),
+        [tipoActividad]
+    );
+    const currentSectionIndex = sections.findIndex((item) => item.id === seccion);
+
+    useEffect(() => {
+        if (!tipoActividad || !seccion || currentSectionIndex <= 0) {
+            return;
+        }
+
+        const firstLockedIndex = sections.findIndex((item, index) =>
+            index < currentSectionIndex && REQUIRED_SECTIONS.has(item.id) && !completion[item.id]
+        );
+
+        if (firstLockedIndex >= 0) {
+            const lockedSection = sections[firstLockedIndex];
+            router.replace(`/mis-actividades/${tipoActividad}/${lockedSection.id}`);
+        }
+    }, [completion, currentSectionIndex, router, sections, seccion, tipoActividad]);
 
     useEffect(() => {
         if (!actividadId || !user?.uid) {
@@ -46,8 +70,6 @@ export default function EditorSeccionPage() {
 
     const nombreActividad = getActivityLabel(tipoActividad);
     const nombreSeccion = EDITOR_SECTION_CATALOG[seccion as keyof typeof EDITOR_SECTION_CATALOG];
-    const sections = getSectionsByActivity(tipoActividad);
-    const currentSectionIndex = sections.findIndex((item) => item.id === seccion);
 
     const navigateToSection = (index: number) => {
         const target = sections[index];

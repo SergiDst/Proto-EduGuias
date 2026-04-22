@@ -16,6 +16,7 @@ const defaultGlobalModal: GlobalModalState = {
 export const useUiStore = create<UiStore>((set) => ({
     globalModal: defaultGlobalModal,
     headerVisible: true,
+    editorSectionCompletion: {},
 
     setGlobalModal: (modal) => {
         set((state) => ({
@@ -28,5 +29,18 @@ export const useUiStore = create<UiStore>((set) => ({
 
     setHeaderVisible: (visible) => {
         set({ headerVisible: visible });
+    },
+
+    setEditorSectionCompleted: (section, completed) => {
+        set((state) => ({
+            editorSectionCompletion: {
+                ...state.editorSectionCompletion,
+                [section]: completed,
+            },
+        }));
+    },
+
+    resetEditorSectionCompletion: () => {
+        set({ editorSectionCompletion: {} });
     },
 }));

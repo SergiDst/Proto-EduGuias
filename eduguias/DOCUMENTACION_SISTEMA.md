@@ -699,12 +699,14 @@ const deleteInFlight = new Map<string, Promise<void>>();
 ## 15. Próximos pasos técnicos
 
 ### Para implementar
-- [ ] Tipado con union discriminada de Activities (Section 10)
+- [ ] Tipado con union discriminada de Activities (cREA LA INTERFAZ DEL CONTENIDO DE LA ACTIVIDAD)
 - [ ] Validaciones de WCAG/UDL antes de guardar
+- [ ] Creación de actividad y descarga en los formatos anteriormente mencionados
+- [ ] En la seccion de Paleta de colores crear el editor con lo anteriormente mencionado y quitar la actividad placeholder
 - [ ] Firestore Rules definitivas
 - [ ] Estado `submitting` por operación (UI feedback)
 - [ ] Full payload persistence en editor steps
 - [ ] Integración de traductor i18n (idioma + modo daltonismo)
-- [ ] Creación de actividad y descarga en los formatos anteriormente mencionados
+
 ---
 

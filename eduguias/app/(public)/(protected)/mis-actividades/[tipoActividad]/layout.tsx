@@ -24,6 +24,7 @@ export default function TipoActividadLayout({ children }: { children: React.Reac
                 <EditSideBar
                     assistantOpen={assistantOpen}
                     setAssistantOpen={setAssistantOpen}
+                    seccionActual={seccionActual}
                 />
             </div>
         </div>

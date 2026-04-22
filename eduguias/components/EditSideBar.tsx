@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+
 type CardType = "WCAG" | "UDL" | "Clarity";
 
 interface AssistantCard {
@@ -6,7 +8,7 @@ interface AssistantCard {
     body: string;
 }
 
-const cardTypeStyles: Record<CardType, { icon: React.ReactNode; bgClass: string; titleColor: string; bodyColor: string }> = {
+const cardTypeStyles: Record<CardType, { icon: ReactNode; bgClass: string; titleColor: string; bodyColor: string }> = {
     WCAG: {
         icon: (
             <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -43,33 +45,149 @@ const cardTypeStyles: Record<CardType, { icon: React.ReactNode; bgClass: string;
     },
 };
 
-/* const assistantCards: AssistantCard[] = [
-  {
-    id: "WCAG",
-    title: "Texto alternativo faltante",
-    body: "Sube una imagen. Recuerda añadir un texto alternativo para los lectores de pantallas. Así todos los usuarios podran entender el contexto de la imagen.",
-  },
-  {
-    id: "UDL",
-    title: "Principio UDL",
-    body: (
-      <>
-        <span className="font-bold text-[#135BEC]">Múltiples formas de representación:</span>
-        {" "}Considere agregar una descripción de audio o una transcripción de texto para esta pregunta para apoyar diversos estilos de aprendizaje.
-      </>
-    ),
-  },
-  {
-    id: "Clarity",
-    title: "Consejo de claridad",
-    body: "Asegúrate de que tus opciones distractoras (respuestas incorrectas) sean plausibles para medir eficazmente la comprensión del estudiante.",
-  },
-]; */
+const paletteSwatches = ["#FFFFFF", "#F8FAFC", "#6B8795", "#FFF7D1", "#E4E4E7", "#7C8596", "#D6E2FF"];
 
-export default function EditSideBar({ assistantOpen, setAssistantOpen, assistantCards }: { assistantOpen: boolean; setAssistantOpen: (open: boolean) => void; assistantCards?: AssistantCard[] }) {
-    //const cards = propAssistantCards || assistantCards;
+const recommendedModes = [
+    {
+        title: "Modo lectura",
+        body: "Ideal para sesiones de lectura prolongadas.",
+        accentClass: "bg-slate-400",
+        active: false,
+    },
+    {
+        title: "Alto contraste",
+        body: "Maxima legibilidad visual.",
+        accentClass: "bg-slate-950",
+        active: true,
+    },
+    {
+        title: "Pastel suave",
+        body: "Entorno relajante para el aprendizaje.",
+        accentClass: "bg-blue-200",
+        active: false,
+    },
+];
+
+function PaletteSidebar() {
     return (
-        <aside className={`shrink-0 bg-white border-l border-slate-200 flex flex-col transition-all duration-300 overflow-hidden ${assistantOpen ? "w-70" : "w-12"}`}
+        <div className="flex flex-col gap-4 p-4 overflow-y-auto flex-1">
+
+
+            <section className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                <div>
+                    <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-900">Tipografia</p>
+                </div>
+
+                <div className="space-y-3">
+                    <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm">
+                        Public Sans
+                    </div>
+
+                    {[
+                        { label: "Tamano de los titulos", value: 20 },
+                        { label: "Tamano de los subtitulos", value: 18 },
+                        { label: "Tamano del texto", value: 16 },
+                    ].map((item) => (
+                        <div key={item.label} className="space-y-2">
+                            <div className="flex items-center justify-between text-xs font-medium text-slate-700">
+                                <span>{item.label}</span>
+                                <span>{item.value}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <span className="text-xs font-bold text-slate-500">A</span>
+                                <div className="relative h-1.5 flex-1 rounded-full bg-slate-200">
+                                    <div
+                                        className="absolute left-0 top-0 h-1.5 rounded-full bg-[#135BEC]"
+                                        style={{ width: `${Math.max(45, item.value * 4)}%` }}
+                                    />
+                                    <div
+                                        className="absolute top-[-5px] h-4 w-4 rounded-full border-2 border-[#135BEC] bg-white shadow-sm"
+                                        style={{ left: `calc(${Math.max(45, item.value * 4)}% - 0.5rem)` }}
+                                    />
+                                </div>
+                                <span className="text-sm font-bold text-slate-900">A</span>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </section>
+
+            <section className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-900">Color de texto</p>
+                <div className="flex items-center gap-2">
+                    {paletteSwatches.slice(0, 5).map((color, index) => (
+                        <button
+                            key={color}
+                            type="button"
+                            className={`h-6 w-6 rounded-full border ${index === 0 ? "border-[#135BEC] ring-2 ring-[#135BEC]/20" : "border-slate-200"}`}
+                            style={{ backgroundColor: color }}
+                            aria-label={`Color de texto ${index + 1}`}
+                        />
+                    ))}
+                    <button type="button" className="grid h-6 w-6 place-items-center rounded-full border border-slate-200 text-[#94A3B8]">
+                        <span className="text-sm leading-none">✎</span>
+                    </button>
+                </div>
+            </section>
+
+            <section className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-900">Fondo de leccion</p>
+                <div className="grid grid-cols-4 gap-2">
+                    {paletteSwatches.map((color, index) => (
+                        <button
+                            key={color}
+                            type="button"
+                            className={`h-11 rounded-lg border ${index === 0 ? "border-[#135BEC] ring-2 ring-[#135BEC]/15" : "border-slate-200"}`}
+                            style={{ backgroundColor: color }}
+                            aria-label={`Fondo ${index + 1}`}
+                        />
+                    ))}
+                </div>
+            </section>
+
+            <section className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-900">Modos recomendados</p>
+                <div className="space-y-3">
+                    {recommendedModes.map((mode) => (
+                        <div
+                            key={mode.title}
+                            className={`rounded-xl border p-3 ${mode.active ? "border-[#135BEC] bg-[#EEF4FF]" : "border-slate-200 bg-white"}`}
+                        >
+                            <div className="flex items-start gap-3">
+                                <div className="mt-1 flex h-4 w-4 items-center justify-center rounded-full border border-slate-300 bg-white">
+                                    <div className={`h-2 w-2 rounded-full ${mode.accentClass}`} />
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                    <div className="flex items-center justify-between gap-3">
+                                        <p className="text-sm font-bold text-slate-900">{mode.title}</p>
+                                        {mode.active ? <span className="text-xs font-bold text-[#135BEC]">Activo</span> : null}
+                                    </div>
+                                    <p className="mt-1 text-xs leading-5 text-[#64748B]">{mode.body}</p>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </section>
+        </div>
+    );
+}
+
+export default function EditSideBar({
+    assistantOpen,
+    setAssistantOpen,
+    assistantCards,
+    seccionActual,
+}: {
+    assistantOpen: boolean;
+    setAssistantOpen: (open: boolean) => void;
+    assistantCards?: AssistantCard[];
+    seccionActual?: string;
+}) {
+    const paletteMode = seccionActual === "paleta";
+
+    return (
+        <aside className={`shrink-0 bg-white border-l border-slate-200 flex flex-col transition-all duration-300 overflow-hidden ${assistantOpen ? (paletteMode ? "w-[22rem]" : "w-70") : "w-12"}`}
         >
             {/* Panel header */}
             <div className="flex items-center justify-between px-4 py-4 border-b border-slate-100 shrink-0">
@@ -82,10 +200,10 @@ export default function EditSideBar({ assistantOpen, setAssistantOpen, assistant
                         </svg>
                         <div className="min-w-0">
                             <p className="font-[Lexend] text-xs font-bold text-[#135BEC] tracking-[0.5px] uppercase leading-none">
-                                Asistente
+                                {paletteMode ? "Personalizacion" : "Asistente"}
                             </p>
                             <p className="font-[Lexend] text-[11px] text-[#64748B] mt-0.5 truncate">
-                                Asistente de accesibilidad y pedagogia
+                                {paletteMode ? "Ajusta la apariencia visual de la actividad" : "Asistente de accesibilidad y pedagogia"}
                             </p>
                         </div>
                     </div>
@@ -94,7 +212,7 @@ export default function EditSideBar({ assistantOpen, setAssistantOpen, assistant
                     onClick={() => setAssistantOpen(!assistantOpen)}
                     className={`shrink-0 text-[#94A3B8] hover:text-[#475569] transition-colors ${assistantOpen ? "" : "mx-auto"
                         }`}
-                    title={assistantOpen ? "Cerrar asistente" : "Abrir asistente"}
+                    title={assistantOpen ? (paletteMode ? "Cerrar personalizacion" : "Cerrar asistente") : (paletteMode ? "Abrir personalizacion" : "Abrir asistente")}
                 >
                     <svg
                         width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"
@@ -106,10 +224,10 @@ export default function EditSideBar({ assistantOpen, setAssistantOpen, assistant
             </div>
 
             {/* Cards */}
-            {assistantOpen && (
+            {assistantOpen && (paletteMode ? <PaletteSidebar /> : (
                 <div className="flex flex-col gap-3 p-4 overflow-y-auto flex-1">
                     {assistantCards ?
-                        assistantCards?.map((card) => {
+                        assistantCards.map((card) => {
                             const styles = cardTypeStyles[card.id];
                             return (
                                 <div
@@ -138,7 +256,7 @@ export default function EditSideBar({ assistantOpen, setAssistantOpen, assistant
                     }
 
                 </div>
-            )}
+            ))}
         </aside>
     )
 }
