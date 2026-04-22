@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 
 import type { CuestionarioPayload } from "@/interfaces/actividades";
 import { useActividadesStore } from "@/stores/actividadesStore";
@@ -21,7 +21,7 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean
       className={`relative shrink-0 w-11 h-6 rounded-full transition-colors ${checked ? "bg-[#135BEC]" : "bg-[#CBD5E1]"}`}
     >
       <span
-        className={`absolute top-0.5 w-5 h-5 bg-white rounded-full border border-white shadow-sm transition-transform ${checked ? "translate-x-5" : "translate-x-0.5"}`}
+        className={`absolute top-0.5 w-5 h-5 bg-white rounded-full border border-white shadow-sm transition-transform ${checked ? "translate-x-0.3" : "-translate-x-full"}`}
       />
     </button>
   );
@@ -31,7 +31,6 @@ export function RetroalimentacionStep({ onNext, onPrev }: RetroalimentacionStepP
   const questionnaireDraft = useActividadesStore((state) => state.questionnaireDraft);
   const setQuestionnaireDraft = useActividadesStore((state) => state.setQuestionnaireDraft);
   const setEditorSectionCompleted = useUiStore((state) => state.setEditorSectionCompleted);
-  const [showExplanations, setShowExplanations] = useState(true);
   const feedbackType: "inmediato" | "finalizar" =
     questionnaireDraft?.feedbackMode === "at-end" ? "finalizar" : "inmediato";
   const showCorrect = questionnaireDraft?.showCorrectAnswers ?? true;
@@ -154,13 +153,6 @@ export function RetroalimentacionStep({ onNext, onPrev }: RetroalimentacionStepP
               <div className="font-lexend text-sm text-[#64748B]">Resaltar la respuesta correcta cuando se selecciona una respuesta erronea</div>
             </div>
             <Toggle checked={showCorrect} onChange={updateShowCorrect} />
-          </div>
-          <div className="flex justify-between items-center py-2 border-b border-[#F8FAFC]">
-            <div>
-              <div className="font-lexend text-base font-medium text-[#0F172A]">Explicaciónes</div>
-              <div className="font-lexend text-sm text-[#64748B]">Mostrar la explicación de cada respuesta</div>
-            </div>
-            <Toggle checked={showExplanations} onChange={setShowExplanations} />
           </div>
         </div>
       </div>

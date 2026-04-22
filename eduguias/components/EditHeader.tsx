@@ -2,7 +2,7 @@ import Link from "next/link";
 
 export default function EditHeader() {
     return (
-        <header className="flex items-center justify-between px-6 py-3 bg-white border-b border-slate-200 shrink-0 z-20">
+        <header className="flex h-16 items-center justify-between px-6 bg-white border-b border-slate-200 shrink-0 z-20">
             {/* Logo */}
             <Link href="/inicio" className="flex items-center gap-2.5">
                 <svg width="24" height="20" viewBox="0 0 28 23" fill="none" xmlns="http://www.w3.org/2000/svg">

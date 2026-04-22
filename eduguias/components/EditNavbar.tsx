@@ -51,6 +51,11 @@ export default function EditNavbar({ progress, tipoActividad, seccionActual }: {
     const navItems = getSectionsByActivity(tipoActividad);
     const completion = useUiStore((state) => state.editorSectionCompletion);
     const requiredSections = new Set<EditorSectionId>(["objetivo", "contenido", "retroalimentacion", "paleta"]);
+    const currentIndex = navItems.findIndex((item) => item.id === seccionActual);
+    const normalizedIndex = currentIndex < 0 ? 0 : currentIndex;
+    const maxIndex = Math.max(navItems.length - 1, 1);
+    const calculatedProgress = Math.round((normalizedIndex / maxIndex) * 100);
+    const displayProgress = Math.max(progress, calculatedProgress);
 
     const isSectionLocked = (targetId: EditorSectionId): boolean => {
         const targetIndex = navItems.findIndex((item) => item.id === targetId);
@@ -71,7 +76,7 @@ export default function EditNavbar({ progress, tipoActividad, seccionActual }: {
     };
 
     return (
-        <aside className="w-55 shrink-0 bg-white border-r border-slate-200 flex flex-col">
+        <aside className="fixed left-0 top-16 bottom-0 z-20 w-55 shrink-0 flex flex-col border-r border-slate-200 bg-white">
             {/* Type label */}
             <div className="px-5 pt-6 pb-4 border-b border-slate-100">
                 <p className="font-[Lexend] text-[11px] font-bold text-[#0F172A] tracking-[0.5px] uppercase">
@@ -116,12 +121,12 @@ export default function EditNavbar({ progress, tipoActividad, seccionActual }: {
             <div className="px-5 py-4 border-t border-slate-100">
                 <div className="flex items-center justify-between mb-2">
                     <span className="font-[Lexend] text-xs text-[#475569]">Progreso</span>
-                    <span className="font-[Lexend] text-xs font-bold text-[#0F172A]">{progress}%</span>
+                    <span className="font-[Lexend] text-xs font-bold text-[#0F172A]">{displayProgress}%</span>
                 </div>
                 <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
                     <div
                         className="h-full bg-[#135BEC] rounded-full transition-all"
-                        style={{ width: `${progress}%` }}
+                        style={{ width: `${displayProgress}%` }}
                     />
                 </div>
             </div>

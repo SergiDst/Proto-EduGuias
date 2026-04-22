@@ -6,6 +6,18 @@ export type ActivityType =
     | "union-conceptos";
 
 export type QuestionnaireFeedbackMode = "per-question" | "at-end";
+export type QuestionnairePaletteMode = "modo-lectura" | "alto-contraste" | "pastel-suave";
+export type QuestionnaireFontFamily = "inter" | "roboto" | "source-sans-3";
+
+export interface QuestionnairePalette {
+    fontFamily: QuestionnaireFontFamily;
+    titleSize: number;
+    subtitleSize: number;
+    bodySize: number;
+    textColor: string;
+    backgroundColor: string;
+    mode: QuestionnairePaletteMode;
+}
 
 export interface QuestionOption {
     id: string;
@@ -23,12 +35,14 @@ export interface Question {
 }
 
 export interface CuestionarioPayload {
+    activityTitle?: string;
     objective?: string;
     instructions: string;
     questions: Question[];
     feedbackMode: QuestionnaireFeedbackMode;
     showCorrectAnswers: boolean;
     generalMessage?: string;
+    palette?: QuestionnairePalette;
 }
 
 export interface TrueFalseStatement {

@@ -203,6 +203,9 @@ export const useActividadesStore = create<ActividadesStore>((set, get) => ({
                 state.selectedActividad?.type === "cuestionario"
                     ? {
                           ...state.selectedActividad,
+                          title:
+                              payload.activityTitle?.trim() ||
+                              state.selectedActividad.title,
                           payload,
                       }
                     : state.selectedActividad;

@@ -11,6 +11,7 @@ interface ObjetivoStepProps {
 }
 
 const createDefaultDraft = (): CuestionarioPayload => ({
+  activityTitle: "",
   objective: "",
   instructions: "",
   questions: [],
@@ -33,6 +34,7 @@ export function ObjetivoStep({ onNext }: ObjetivoStepProps) {
   const questionnaireDraft = useActividadesStore((state) => state.questionnaireDraft);
   const setQuestionnaireDraft = useActividadesStore((state) => state.setQuestionnaireDraft);
   const setEditorSectionCompleted = useUiStore((state) => state.setEditorSectionCompleted);
+  const activityTitle = questionnaireDraft?.activityTitle ?? selectedActividad?.title ?? "";
   const objective = questionnaireDraft?.objective ?? "";
 
   useEffect(() => {
@@ -53,17 +55,27 @@ export function ObjetivoStep({ onNext }: ObjetivoStepProps) {
     setQuestionnaireDraft(defaultDraft);
   }, [questionnaireDraft, selectedActividad?.id, selectedActividad?.payload, selectedActividad?.type, setQuestionnaireDraft]);
 
+  const isTitleValid = useMemo(() => activityTitle.trim().length >= 5, [activityTitle]);
   const isObjectiveValid = useMemo(() => objective.trim().length >= 15, [objective]);
+  const isStepValid = isTitleValid && isObjectiveValid;
 
   useEffect(() => {
-    setEditorSectionCompleted("objetivo", isObjectiveValid);
-  }, [isObjectiveValid, setEditorSectionCompleted]);
+    setEditorSectionCompleted("objetivo", isStepValid);
+  }, [isStepValid, setEditorSectionCompleted]);
 
   const handleObjectiveChange = (value: string) => {
     const basePayload = questionnaireDraft ?? createDefaultDraft();
     setQuestionnaireDraft({
       ...basePayload,
       objective: value,
+    });
+  };
+
+  const handleActivityTitleChange = (value: string) => {
+    const basePayload = questionnaireDraft ?? createDefaultDraft();
+    setQuestionnaireDraft({
+      ...basePayload,
+      activityTitle: value,
     });
   };
 
@@ -77,6 +89,23 @@ export function ObjetivoStep({ onNext }: ObjetivoStepProps) {
       </div>
 
       <div className="flex flex-col gap-8">
+        <div className="flex flex-col gap-3">
+          <label className="font-lexend text-sm font-bold text-[#334155]">Titulo de la actividad</label>
+          <input
+            type="text"
+            value={activityTitle}
+            onChange={(event) => handleActivityTitleChange(event.target.value)}
+            className="w-full rounded-xl border border-[#E2E8F0] bg-white p-4 font-lexend text-base text-[#334155] placeholder-[#94A3B8] focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#135BEC]"
+            placeholder="Ej: Cuestionario de termodinamica - Nivel 1"
+          />
+          <p className="font-lexend text-xs text-[#94A3B8]">
+            Este titulo se mostrara en la vista previa y se guardara con la actividad.
+          </p>
+          <p className={`font-lexend text-xs font-semibold ${isTitleValid ? "text-emerald-600" : "text-amber-600"}`}>
+            {isTitleValid ? "Titulo completo" : "Minimo 5 caracteres"}
+          </p>
+        </div>
+
         <div className="flex flex-col gap-3">
           <label className="font-lexend text-sm font-bold text-[#334155]">Objetivo de aprendizaje</label>
           <textarea
@@ -98,9 +127,9 @@ export function ObjetivoStep({ onNext }: ObjetivoStepProps) {
         <div className="flex justify-end pt-8">
           <button
             onClick={onNext}
-            disabled={!isObjectiveValid}
+            disabled={!isStepValid}
             className={`flex items-center gap-2 rounded-xl px-8 py-3 font-lexend text-base font-bold text-white transition-colors shadow-lg shadow-[rgba(19,91,236,0.2)] ${
-              isObjectiveValid ? "bg-[#135BEC] hover:bg-[#0f4fd1]" : "cursor-not-allowed bg-[#94A3B8]"
+              isStepValid ? "bg-[#135BEC] hover:bg-[#0f4fd1]" : "cursor-not-allowed bg-[#94A3B8]"
             }`}
           >
             Siguiente

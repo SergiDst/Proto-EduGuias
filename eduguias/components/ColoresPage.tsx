@@ -3,7 +3,12 @@
 import Image from "next/image";
 import { useEffect, useMemo } from "react";
 
-import type { CuestionarioPayload, Question } from "../interfaces/actividades";
+import type {
+    CuestionarioPayload,
+    Question,
+    QuestionnairePalette,
+    QuestionnairePaletteMode,
+} from "../interfaces/actividades";
 import { useActividadesStore } from "../stores/actividadesStore";
 import { useUiStore } from "../stores/uiStore";
 
@@ -30,6 +35,57 @@ const fallbackQuestion: Question = {
     ],
 };
 
+const defaultPalette: QuestionnairePalette = {
+    fontFamily: "inter",
+    titleSize: 20,
+    subtitleSize: 18,
+    bodySize: 16,
+    textColor: "#0F172A",
+    backgroundColor: "#FFFFFF",
+    mode: "alto-contraste",
+};
+
+const modeTokens: Record<
+    QuestionnairePaletteMode,
+    {
+        headerGradient: string;
+        cardBg: string;
+        cardBorder: string;
+        optionActiveBg: string;
+        optionActiveBorder: string;
+        explanationBg: string;
+        explanationBorder: string;
+    }
+> = {
+    "alto-contraste": {
+        headerGradient: "linear-gradient(90deg, #0F172A 0%, #123F7A 55%, #135BEC 100%)",
+        cardBg: "#F8FAFC",
+        cardBorder: "#E2E8F0",
+        optionActiveBg: "#EEF4FF",
+        optionActiveBorder: "#135BEC",
+        explanationBg: "#FFF7ED",
+        explanationBorder: "#FCD9BD",
+    },
+    "modo-lectura": {
+        headerGradient: "linear-gradient(90deg, #334155 0%, #475569 55%, #64748B 100%)",
+        cardBg: "#F8FAFC",
+        cardBorder: "#CBD5E1",
+        optionActiveBg: "#F1F5F9",
+        optionActiveBorder: "#334155",
+        explanationBg: "#F8FAFC",
+        explanationBorder: "#CBD5E1",
+    },
+    "pastel-suave": {
+        headerGradient: "linear-gradient(90deg, #7C3AED 0%, #4F46E5 50%, #0EA5E9 100%)",
+        cardBg: "#F5F3FF",
+        cardBorder: "#DDD6FE",
+        optionActiveBg: "#EEF2FF",
+        optionActiveBorder: "#6366F1",
+        explanationBg: "#ECFEFF",
+        explanationBorder: "#A5F3FC",
+    },
+};
+
 export function ColoresStep({ onNext, onPrev }: ColoresStepProps) {
     const selectedActividad = useActividadesStore((state) => state.selectedActividad);
     const questionnaireDraft = useActividadesStore((state) => state.questionnaireDraft);
@@ -45,19 +101,30 @@ export function ColoresStep({ onNext, onPrev }: ColoresStepProps) {
                 instructions:
                     "El contenido real de la actividad aparecera aqui cuando selecciones o cargues una actividad.",
                 question: fallbackQuestion,
+                palette: defaultPalette,
+                showPerQuestionExplanation: true,
             };
         }
 
         return {
-            title: selectedActividad?.title || "Cuestionario sin preguntas",
+            title: draftSource.activityTitle?.trim() || selectedActividad?.title || "Cuestionario sin preguntas",
             subject: selectedActividad?.subject || "Cuestionario",
             instructions: draftSource.instructions,
             question: draftSource.questions[0],
+            palette: draftSource.palette ?? defaultPalette,
+            showPerQuestionExplanation: draftSource.feedbackMode === "per-question",
         };
     }, [questionnaireDraft, selectedActividad]);
 
     const highlightedOptionIndex = preview.question.options.findIndex((option) => option.isCorrect);
     const activeOptionIndex = highlightedOptionIndex >= 0 ? highlightedOptionIndex : 0;
+    const paletteTokens = modeTokens[preview.palette.mode] ?? modeTokens["alto-contraste"];
+    const previewFontFamily =
+        preview.palette.fontFamily === "roboto"
+            ? "var(--font-roboto), sans-serif"
+            : preview.palette.fontFamily === "source-sans-3"
+                ? "var(--font-source-sans-3), sans-serif"
+                : "var(--font-inter), sans-serif";
     const isPaletaValid = useMemo(() => {
         const draftSource = questionnaireDraft ?? (selectedActividad?.type === "cuestionario" ? selectedActividad.payload : null);
 
@@ -80,40 +147,68 @@ export function ColoresStep({ onNext, onPrev }: ColoresStepProps) {
 
     return (
         <div className="flex flex-col items-center gap-8 pb-8">
-            <div className="w-full max-w-3xl overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-[0_20px_60px_rgba(15,23,42,0.08)]">
-                <div className="border-b border-slate-200 bg-linear-to-r from-[#0F172A] via-[#123F7A] to-[#135BEC] px-8 py-6 text-white">
+            <div
+                className="w-full max-w-3xl overflow-hidden rounded-3xl border shadow-[0_20px_60px_rgba(15,23,42,0.08)]"
+                style={{
+                    borderColor: paletteTokens.cardBorder,
+                    backgroundColor: preview.palette.backgroundColor,
+                    color: preview.palette.textColor,
+                    fontFamily: previewFontFamily,
+                }}
+            >
+                <div
+                    className="border-b px-8 py-6 text-white"
+                    style={{
+                        borderColor: paletteTokens.cardBorder,
+                        background: paletteTokens.headerGradient,
+                    }}
+                >
                     <div className="flex flex-wrap items-center gap-3">
                         <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-bold uppercase tracking-[0.16em]">
                             Vista previa real
                         </span>
-                        <span className="text-sm text-white/80">{preview.subject}</span>
+                        <span className="text-white/80" style={{ fontSize: `${Math.max(12, preview.palette.bodySize - 2)}px` }}>
+                            {preview.subject}
+                        </span>
                     </div>
-                    <h1 className="mt-4 text-3xl font-bold leading-tight">{preview.title}</h1>
-                    <p className="mt-3 max-w-2xl text-sm leading-6 text-white/80">{preview.instructions}</p>
+                    <h1 className="mt-4 font-bold leading-tight" style={{ fontSize: `${preview.palette.titleSize + 10}px` }}>
+                        {preview.title}
+                    </h1>
+                    <p className="mt-3 max-w-2xl text-white/80" style={{ fontSize: `${preview.palette.bodySize}px`, lineHeight: 1.6 }}>
+                        {preview.instructions}
+                    </p>
                 </div>
 
                 <div className="p-8 md:p-10">
-                    <div className="space-y-4 rounded-2xl border border-slate-200 bg-slate-50 p-6">
+                    <div
+                        className="space-y-4 rounded-2xl border p-6"
+                        style={{
+                            borderColor: paletteTokens.cardBorder,
+                            backgroundColor: paletteTokens.cardBg,
+                        }}
+                    >
                         {preview.question.imageUrl ? (
                             <Image
                                 src={preview.question.imageUrl}
-                                alt={preview.question.title}
+                                alt={preview.question.imageAlt?.trim() || preview.question.title}
                                 width={960}
                                 height={560}
                                 unoptimized
                                 className="h-56 w-full rounded-xl object-cover"
                             />
-                        ) : (
-                            <div className="flex h-56 w-full items-center justify-center rounded-xl border border-dashed border-slate-300 bg-white px-6 text-center text-sm text-slate-500">
-                                La imagen de la primera pregunta se mostrara aqui si agregas una.
-                            </div>
-                        )}
+                        ) : null}
 
                         <div className="space-y-3">
-                            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#135BEC]">
+                            <p
+                                className="font-semibold uppercase tracking-[0.18em]"
+                                style={{
+                                    color: preview.palette.textColor,
+                                    fontSize: `${Math.max(12, preview.palette.bodySize - 2)}px`,
+                                }}
+                            >
                                 Pregunta 1
                             </p>
-                            <h2 className="text-2xl font-bold leading-tight text-slate-900">
+                            <h2 className="font-bold leading-tight" style={{ fontSize: `${preview.palette.titleSize + 4}px` }}>
                                 {preview.question.title}
                             </h2>
                         </div>
@@ -125,17 +220,32 @@ export function ColoresStep({ onNext, onPrev }: ColoresStepProps) {
                                 return (
                                     <div
                                         key={option.id}
-                                        className={`flex items-start gap-4 rounded-2xl border p-4 transition-colors ${isActive ? "border-[#135BEC] bg-[#EEF4FF]" : "border-slate-200 bg-white"
-                                            }`}
+                                        className="flex items-start gap-4 rounded-2xl border p-4 transition-colors"
+                                        style={{
+                                            borderColor: isActive ? paletteTokens.optionActiveBorder : paletteTokens.cardBorder,
+                                            backgroundColor: isActive ? paletteTokens.optionActiveBg : "#FFFFFF",
+                                        }}
                                     >
                                         <div
-                                            className={`mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border ${isActive ? "border-[#135BEC] bg-[#135BEC]" : "border-slate-300 bg-white"
-                                                }`}
+                                            className="mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border"
+                                            style={{
+                                                borderColor: isActive ? paletteTokens.optionActiveBorder : "#CBD5E1",
+                                                backgroundColor: isActive ? paletteTokens.optionActiveBorder : "#FFFFFF",
+                                            }}
                                         >
                                             {isActive ? <div className="h-2.5 w-2.5 rounded-full bg-white" /> : null}
                                         </div>
                                         <div className="min-w-0 flex-1">
-                                            <p className="text-base font-medium leading-6 text-slate-800">{option.label}</p>
+                                            <p
+                                                className="font-medium"
+                                                style={{
+                                                    color: preview.palette.textColor,
+                                                    fontSize: `${preview.palette.bodySize}px`,
+                                                    lineHeight: 1.6,
+                                                }}
+                                            >
+                                                {option.label}
+                                            </p>
                                             {option.isCorrect ? (
                                                 <p className="mt-1 text-sm font-medium text-emerald-700">Opcion correcta</p>
                                             ) : null}
@@ -145,10 +255,21 @@ export function ColoresStep({ onNext, onPrev }: ColoresStepProps) {
                             })}
                         </div>
 
-                        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm leading-6 text-amber-900">
-                            {preview.question.explanation ??
-                                "Aqui puedes mostrar la explicacion de la primera pregunta cuando el usuario la configure en el editor."}
-                        </div>
+                        {preview.showPerQuestionExplanation ? (
+                            <div
+                                className="rounded-2xl border px-5 py-4"
+                                style={{
+                                    borderColor: paletteTokens.explanationBorder,
+                                    backgroundColor: paletteTokens.explanationBg,
+                                    color: preview.palette.textColor,
+                                    fontSize: `${preview.palette.bodySize}px`,
+                                    lineHeight: 1.6,
+                                }}
+                            >
+                                {preview.question.explanation ??
+                                    "Aqui puedes mostrar la explicacion de la primera pregunta cuando el usuario la configure en el editor."}
+                            </div>
+                        ) : null}
 
                         <div className="flex items-center justify-between gap-4 pt-2">
                             <button

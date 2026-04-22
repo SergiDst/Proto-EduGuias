@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Lexend } from "next/font/google";
+import { Inter, Lexend, Roboto, Source_Sans_3 } from "next/font/google";
 import "./globals.css";
 import AuthListener from "@/components/AuthListener";
 import GlobalModal from "@/components/GlobalModal";
@@ -7,6 +7,22 @@ import GlobalModal from "@/components/GlobalModal";
 const lexend = Lexend({
   subsets: ["latin"],
   variable: "--font-lexend",
+});
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+});
+
+const roboto = Roboto({
+  subsets: ["latin"],
+  variable: "--font-roboto",
+  weight: ["400", "500", "700"],
+});
+
+const sourceSans3 = Source_Sans_3({
+  subsets: ["latin"],
+  variable: "--font-source-sans-3",
 });
 
 export const metadata: Metadata = {
@@ -18,7 +34,7 @@ export default function RootLayout({ children, }: Readonly<{ children: React.Rea
   return (
     <html
       lang="en"
-      className={`${lexend.variable} h-full antialiased`}
+      className={`${lexend.variable} ${inter.variable} ${roboto.variable} ${sourceSans3.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
         <AuthListener />

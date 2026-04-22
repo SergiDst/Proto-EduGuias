@@ -1,4 +1,13 @@
+import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
+
+import type {
+    CuestionarioPayload,
+    QuestionnaireFontFamily,
+    QuestionnairePalette,
+    QuestionnairePaletteMode,
+} from "@/interfaces/actividades";
+import { useActividadesStore } from "@/stores/actividadesStore";
 
 type CardType = "WCAG" | "UDL" | "Clarity";
 
@@ -47,6 +56,37 @@ const cardTypeStyles: Record<CardType, { icon: ReactNode; bgClass: string; title
 
 const paletteSwatches = ["#FFFFFF", "#F8FAFC", "#6B8795", "#FFF7D1", "#E4E4E7", "#7C8596", "#D6E2FF"];
 
+const textColorSwatches = ["#0F172A", "#1E293B", "#334155", "#475569", "#111827"];
+
+const defaultPalette: QuestionnairePalette = {
+    fontFamily: "inter",
+    titleSize: 20,
+    subtitleSize: 18,
+    bodySize: 16,
+    textColor: "#0F172A",
+    backgroundColor: "#FFFFFF",
+    mode: "alto-contraste",
+};
+
+const createDefaultDraft = (): CuestionarioPayload => ({
+    objective: "",
+    instructions: "",
+    questions: [],
+    feedbackMode: "per-question",
+    showCorrectAnswers: true,
+    generalMessage: "",
+    palette: defaultPalette,
+});
+
+const isCuestionarioPayload = (value: unknown): value is CuestionarioPayload => {
+    if (!value || typeof value !== "object") {
+        return false;
+    }
+
+    const candidate = value as CuestionarioPayload;
+    return Array.isArray(candidate.questions) && typeof candidate.instructions === "string";
+};
+
 const recommendedModes = [
     {
         title: "Modo lectura",
@@ -68,7 +108,53 @@ const recommendedModes = [
     },
 ];
 
+const fontOptions: Array<{ id: QuestionnaireFontFamily; label: string; previewFont: string }> = [
+    { id: "inter", label: "Inter", previewFont: "var(--font-inter), sans-serif" },
+    { id: "roboto", label: "Roboto", previewFont: "var(--font-roboto), sans-serif" },
+    { id: "source-sans-3", label: "Source Sans 3", previewFont: "var(--font-source-sans-3), sans-serif" },
+];
+
 function PaletteSidebar() {
+    const selectedActividad = useActividadesStore((state) => state.selectedActividad);
+    const questionnaireDraft = useActividadesStore((state) => state.questionnaireDraft);
+    const setQuestionnaireDraft = useActividadesStore((state) => state.setQuestionnaireDraft);
+    const [isFontAccordionOpen, setIsFontAccordionOpen] = useState(false);
+
+    const sourceDraft = useMemo(() => {
+        const payloadFromActividad =
+            selectedActividad?.type === "cuestionario" && isCuestionarioPayload(selectedActividad.payload)
+                ? selectedActividad.payload
+                : null;
+
+        return questionnaireDraft ?? payloadFromActividad ?? createDefaultDraft();
+    }, [questionnaireDraft, selectedActividad]);
+
+    const palette = sourceDraft.palette ?? defaultPalette;
+    const selectedFontOption = fontOptions.find((fontOption) => fontOption.id === palette.fontFamily) ?? fontOptions[0];
+
+    const updatePalette = (updater: (current: QuestionnairePalette) => QuestionnairePalette) => {
+        const currentDraft = sourceDraft;
+        const nextPalette = updater(currentDraft.palette ?? defaultPalette);
+
+        setQuestionnaireDraft({
+            ...currentDraft,
+            palette: nextPalette,
+        });
+    };
+
+    const updatePaletteSize = (field: "titleSize" | "subtitleSize" | "bodySize", value: number) => {
+        updatePalette((current) => ({
+            ...current,
+            [field]: value,
+        }));
+    };
+
+    const modeLabel = (mode: QuestionnairePaletteMode) => {
+        if (mode === "modo-lectura") return "Modo lectura";
+        if (mode === "pastel-suave") return "Pastel suave";
+        return "Alto contraste";
+    };
+
     return (
         <div className="flex flex-col gap-4 p-4 overflow-y-auto flex-1">
 
@@ -79,34 +165,74 @@ function PaletteSidebar() {
                 </div>
 
                 <div className="space-y-3">
-                    <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm">
-                        Public Sans
+                    <div className="rounded-lg border border-slate-200 bg-white shadow-sm">
+                        <button
+                            type="button"
+                            onClick={() => setIsFontAccordionOpen((current) => !current)}
+                            className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left"
+                            aria-expanded={isFontAccordionOpen}
+                            aria-label="Seleccionar fuente"
+                        >
+                            <span className="text-sm font-semibold text-slate-700" style={{ fontFamily: selectedFontOption.previewFont }}>
+                                {selectedFontOption.label}
+                            </span>
+                            <svg
+                                width="16"
+                                height="16"
+                                viewBox="0 0 16 16"
+                                fill="none"
+                                xmlns="http://www.w3.org/2000/svg"
+                                className={`transition-transform ${isFontAccordionOpen ? "rotate-180" : ""}`}
+                            >
+                                <path d="M3.5 6L8 10L12.5 6" stroke="#64748B" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                        </button>
+
+                        {isFontAccordionOpen ? (
+                            <div className="space-y-1 border-t border-slate-200 p-2">
+                                {fontOptions.map((fontOption) => {
+                                    const isActive = palette.fontFamily === fontOption.id;
+
+                                    return (
+                                        <button
+                                            key={fontOption.id}
+                                            type="button"
+                                            onClick={() => {
+                                                updatePalette((current) => ({
+                                                    ...current,
+                                                    fontFamily: fontOption.id,
+                                                }));
+                                                setIsFontAccordionOpen(false);
+                                            }}
+                                            className={`w-full rounded-md px-3 py-2 text-left text-sm transition-colors ${isActive ? "bg-[#EEF4FF] text-[#0F172A]" : "text-slate-700 hover:bg-slate-50"}`}
+                                            style={{ fontFamily: fontOption.previewFont }}
+                                        >
+                                            {fontOption.label}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        ) : null}
                     </div>
 
                     {[
-                        { label: "Tamano de los titulos", value: 20 },
-                        { label: "Tamano de los subtitulos", value: 18 },
-                        { label: "Tamano del texto", value: 16 },
+                        { label: "Tamano de los titulos", value: palette.titleSize, key: "titleSize" as const },
+                        { label: "Tamano de los subtitulos", value: palette.subtitleSize, key: "subtitleSize" as const },
+                        { label: "Tamano del texto", value: palette.bodySize, key: "bodySize" as const },
                     ].map((item) => (
                         <div key={item.label} className="space-y-2">
                             <div className="flex items-center justify-between text-xs font-medium text-slate-700">
                                 <span>{item.label}</span>
                                 <span>{item.value}</span>
                             </div>
-                            <div className="flex items-center gap-2">
-                                <span className="text-xs font-bold text-slate-500">A</span>
-                                <div className="relative h-1.5 flex-1 rounded-full bg-slate-200">
-                                    <div
-                                        className="absolute left-0 top-0 h-1.5 rounded-full bg-[#135BEC]"
-                                        style={{ width: `${Math.max(45, item.value * 4)}%` }}
-                                    />
-                                    <div
-                                        className="absolute top-[-5px] h-4 w-4 rounded-full border-2 border-[#135BEC] bg-white shadow-sm"
-                                        style={{ left: `calc(${Math.max(45, item.value * 4)}% - 0.5rem)` }}
-                                    />
-                                </div>
-                                <span className="text-sm font-bold text-slate-900">A</span>
-                            </div>
+                            <input
+                                type="range"
+                                min={14}
+                                max={30}
+                                value={item.value}
+                                onChange={(event) => updatePaletteSize(item.key, Number(event.target.value))}
+                                className="h-2 w-full cursor-pointer accent-[#135BEC]"
+                            />
                         </div>
                     ))}
                 </div>
@@ -115,18 +241,33 @@ function PaletteSidebar() {
             <section className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
                 <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-900">Color de texto</p>
                 <div className="flex items-center gap-2">
-                    {paletteSwatches.slice(0, 5).map((color, index) => (
+                    {textColorSwatches.map((color, index) => (
                         <button
                             key={color}
                             type="button"
-                            className={`h-6 w-6 rounded-full border ${index === 0 ? "border-[#135BEC] ring-2 ring-[#135BEC]/20" : "border-slate-200"}`}
+                            onClick={() =>
+                                updatePalette((current) => ({
+                                    ...current,
+                                    textColor: color,
+                                }))
+                            }
+                            className={`h-6 w-6 rounded-full border ${palette.textColor === color ? "border-[#135BEC] ring-2 ring-[#135BEC]/20" : "border-slate-200"}`}
                             style={{ backgroundColor: color }}
                             aria-label={`Color de texto ${index + 1}`}
                         />
                     ))}
-                    <button type="button" className="grid h-6 w-6 place-items-center rounded-full border border-slate-200 text-[#94A3B8]">
-                        <span className="text-sm leading-none">✎</span>
-                    </button>
+                    <input
+                        type="color"
+                        value={palette.textColor}
+                        onChange={(event) =>
+                            updatePalette((current) => ({
+                                ...current,
+                                textColor: event.target.value,
+                            }))
+                        }
+                        className="h-6 w-6 cursor-pointer rounded-full border border-slate-200 p-0"
+                        aria-label="Color personalizado de texto"
+                    />
                 </div>
             </section>
 
@@ -137,7 +278,13 @@ function PaletteSidebar() {
                         <button
                             key={color}
                             type="button"
-                            className={`h-11 rounded-lg border ${index === 0 ? "border-[#135BEC] ring-2 ring-[#135BEC]/15" : "border-slate-200"}`}
+                            onClick={() =>
+                                updatePalette((current) => ({
+                                    ...current,
+                                    backgroundColor: color,
+                                }))
+                            }
+                            className={`h-11 rounded-lg border ${palette.backgroundColor === color ? "border-[#135BEC] ring-2 ring-[#135BEC]/15" : "border-slate-200"}`}
                             style={{ backgroundColor: color }}
                             aria-label={`Fondo ${index + 1}`}
                         />
@@ -151,7 +298,7 @@ function PaletteSidebar() {
                     {recommendedModes.map((mode) => (
                         <div
                             key={mode.title}
-                            className={`rounded-xl border p-3 ${mode.active ? "border-[#135BEC] bg-[#EEF4FF]" : "border-slate-200 bg-white"}`}
+                            className={`rounded-xl border p-3 ${palette.mode === (mode.title === "Modo lectura" ? "modo-lectura" : mode.title === "Pastel suave" ? "pastel-suave" : "alto-contraste") ? "border-[#135BEC] bg-[#EEF4FF]" : "border-slate-200 bg-white"}`}
                         >
                             <div className="flex items-start gap-3">
                                 <div className="mt-1 flex h-4 w-4 items-center justify-center rounded-full border border-slate-300 bg-white">
@@ -160,9 +307,21 @@ function PaletteSidebar() {
                                 <div className="min-w-0 flex-1">
                                     <div className="flex items-center justify-between gap-3">
                                         <p className="text-sm font-bold text-slate-900">{mode.title}</p>
-                                        {mode.active ? <span className="text-xs font-bold text-[#135BEC]">Activo</span> : null}
+                                        {palette.mode === (mode.title === "Modo lectura" ? "modo-lectura" : mode.title === "Pastel suave" ? "pastel-suave" : "alto-contraste") ? <span className="text-xs font-bold text-[#135BEC]">Activo</span> : null}
                                     </div>
                                     <p className="mt-1 text-xs leading-5 text-[#64748B]">{mode.body}</p>
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            updatePalette((current) => ({
+                                                ...current,
+                                                mode: mode.title === "Modo lectura" ? "modo-lectura" : mode.title === "Pastel suave" ? "pastel-suave" : "alto-contraste",
+                                            }))
+                                        }
+                                        className="mt-2 text-xs font-semibold text-[#135BEC] hover:underline"
+                                    >
+                                        Aplicar {modeLabel(mode.title === "Modo lectura" ? "modo-lectura" : mode.title === "Pastel suave" ? "pastel-suave" : "alto-contraste")}
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -187,7 +346,7 @@ export default function EditSideBar({
     const paletteMode = seccionActual === "paleta";
 
     return (
-        <aside className={`shrink-0 bg-white border-l border-slate-200 flex flex-col transition-all duration-300 overflow-hidden ${assistantOpen ? (paletteMode ? "w-[22rem]" : "w-70") : "w-12"}`}
+        <aside className={`fixed right-0 top-16 bottom-0 z-20 bg-white border-l border-slate-200 flex flex-col transition-all duration-300 overflow-hidden ${assistantOpen ? (paletteMode ? "w-88" : "w-70") : "w-12"}`}
         >
             {/* Panel header */}
             <div className="flex items-center justify-between px-4 py-4 border-b border-slate-100 shrink-0">
