@@ -1,7 +1,19 @@
 import { COLECCIONES } from "@/constants/DocumentosColecciones";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/firestore";
-import { createUserWithEmailAndPassword, onIdTokenChanged, sendEmailVerification, sendPasswordResetEmail, signInWithEmailAndPassword, signOut, User } from "firebase/auth";
+import {
+    createUserWithEmailAndPassword,
+    EmailAuthProvider,
+    onIdTokenChanged,
+    reauthenticateWithCredential,
+    sendEmailVerification,
+    sendPasswordResetEmail,
+    signInWithEmailAndPassword,
+    signOut,
+    updateEmail,
+    updatePassword,
+    User,
+} from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
 
 const usersCollection = COLECCIONES.USUARIOS;
@@ -20,6 +32,33 @@ export async function logoutFirebase() {
 
 export async function resetPasswordFirebase(email: string) {
     return sendPasswordResetEmail(auth, email);
+}
+
+async function reauthenticateCurrentUser(user: User, currentPassword: string) {
+    if (!user.email) {
+        throw new Error("La cuenta no tiene un correo asociado.");
+    }
+    const credential = EmailAuthProvider.credential(user.email, currentPassword);
+    await reauthenticateWithCredential(user, credential);
+}
+
+export async function updateUserEmail(currentPassword: string, newEmail: string) {
+    const user = auth.currentUser;
+    if (!user) {
+        throw new Error("No hay un usuario autenticado.");
+    }
+    await reauthenticateCurrentUser(user, currentPassword);
+    await updateEmail(user, newEmail);
+    await sendEmailVerification(user);
+}
+
+export async function updateUserPassword(currentPassword: string, newPassword: string) {
+    const user = auth.currentUser;
+    if (!user) {
+        throw new Error("No hay un usuario autenticado.");
+    }
+    await reauthenticateCurrentUser(user, currentPassword);
+    await updatePassword(user, newPassword);
 }
 
 export async function signupWithEmail(email: string, password: string) {

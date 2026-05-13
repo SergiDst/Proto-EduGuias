@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuthStore } from "@/stores/authStore";
@@ -51,10 +51,16 @@ export default function Header() {
     const headerVisible = useUiStore((state) => state.headerVisible);
     const setHeaderVisible = useUiStore((state) => state.setHeaderVisible);
     const inEditorRoute = isEditorRoute(pathname);
+    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
     useEffect(() => {
         setHeaderVisible(!inEditorRoute);
     }, [inEditorRoute, setHeaderVisible]);
+
+    // Close mobile menu on route change
+    useEffect(() => {
+        setMobileMenuOpen(false);
+    }, [pathname]);
 
     if (!headerVisible || inEditorRoute) {
         return null;
@@ -84,18 +90,38 @@ export default function Header() {
 
     return (
         <header className="w-full bg-white shadow-sm sticky top-0 z-50">
-            <div className="max-w-360 mx-auto px-6 lg:px-14 h-18.75 flex items-center justify-between gap-8">
+            <div className="max-w-360 mx-auto px-4 sm:px-6 lg:px-14 h-16 sm:h-18.75 flex items-center justify-between gap-3 sm:gap-8">
 
                 {/* Logo */}
-                <Link href={isAuthenticated ? "/inicio" : "/"} className="flex items-center gap-2.5 shrink-0">
+                <Link href={isAuthenticated ? "/inicio" : "/"} className="flex items-center gap-2 sm:gap-2.5 shrink-0">
                     <LogoIcon />
-                    <span className="font-lexend font-bold text-xl tracking-tight text-edu-dark">
+                    <span className="font-lexend font-bold text-lg sm:text-xl tracking-tight text-edu-dark">
                         EduGuias
                     </span>
                 </Link>
 
-                {/* Nav */}
-                <nav className="hidden md:flex items-center gap-10">
+                {/* Mobile menu toggle */}
+                <button
+                    type="button"
+                    onClick={() => setMobileMenuOpen((p) => !p)}
+                    className="md:hidden p-2 rounded-lg hover:bg-slate-100 ml-auto"
+                    aria-label={mobileMenuOpen ? "Cerrar menú" : "Abrir menú"}
+                    aria-expanded={mobileMenuOpen}
+                    aria-controls="public-mobile-menu"
+                >
+                    {mobileMenuOpen ? (
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <path d="M6 6l12 12M6 18L18 6" stroke="#475569" strokeWidth="1.8" strokeLinecap="round" />
+                        </svg>
+                    ) : (
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <path d="M4 6h16M4 12h16M4 18h16" stroke="#475569" strokeWidth="1.8" strokeLinecap="round" />
+                        </svg>
+                    )}
+                </button>
+
+                {/* Nav (desktop) */}
+                <nav className="hidden md:flex items-center gap-6 lg:gap-10" aria-label="Principal">
                     {navLinks.map((link) => {
                         const isActive = link.href === "/"
                             ? pathname === "/" || pathname === "/inicio"
@@ -105,6 +131,7 @@ export default function Header() {
                             <Link
                                 key={link.href}
                                 href={link.href}
+                                aria-current={isActive ? "page" : undefined}
                                 className={
                                     isActive
                                         ? "font-lexend font-semibold text-sm text-brand underline underline-offset-2"
@@ -117,8 +144,8 @@ export default function Header() {
                     })}
                 </nav>
 
-                {/* CTA */}
-                <div className="flex items-center gap-3 shrink-0">
+                {/* CTA (desktop) */}
+                <div className="hidden md:flex items-center gap-3 shrink-0">
                     {isAuthenticated ? (
                         <button
                             type="button"
@@ -132,7 +159,7 @@ export default function Header() {
                         <>
                             <Link
                                 href="/login"
-                                className="hidden sm:flex items-center gap-1.5 bg-brand text-white font-lexend font-bold text-sm px-4 py-2 rounded-lg hover:bg-brand-600 transition-colors"
+                                className="flex items-center gap-1.5 bg-brand text-white font-lexend font-bold text-sm px-4 py-2 rounded-lg hover:bg-brand-600 transition-colors"
                             >
                                 <LoginIcon />
                                 <span>Iniciar sesión</span>
@@ -149,6 +176,55 @@ export default function Header() {
                     )}
                 </div>
             </div>
+
+            {/* Mobile menu panel */}
+            {mobileMenuOpen ? (
+                <div id="public-mobile-menu" className="md:hidden border-t border-slate-200 bg-white">
+                    <nav className="flex flex-col gap-1 p-4" aria-label="Navegación móvil">
+                        {navLinks.map((link) => {
+                            const isActive = link.href === "/"
+                                ? pathname === "/" || pathname === "/inicio"
+                                : pathname === link.href;
+                            return (
+                                <Link
+                                    key={link.href}
+                                    href={link.href}
+                                    onClick={() => setMobileMenuOpen(false)}
+                                    aria-current={isActive ? "page" : undefined}
+                                    className={`font-lexend text-sm px-4 py-3 rounded-lg ${
+                                        isActive ? "bg-blue-50 text-brand font-semibold" : "text-edu-dark hover:bg-slate-50"
+                                    }`}
+                                >
+                                    {link.label}
+                                </Link>
+                            );
+                        })}
+                        <div className="border-t border-slate-100 mt-2 pt-2">
+                            {isAuthenticated ? (
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setMobileMenuOpen(false);
+                                        handleLogout();
+                                    }}
+                                    className="w-full flex items-center justify-center gap-1.5 bg-brand text-white font-lexend font-bold text-sm px-4 py-3 rounded-lg"
+                                >
+                                    <LogoutIcon /> Cerrar sesión
+                                </button>
+                            ) : (
+                                <div className="flex flex-col gap-2">
+                                    <Link href="/login" onClick={() => setMobileMenuOpen(false)} className="flex items-center justify-center gap-1.5 bg-brand text-white font-lexend font-bold text-sm px-4 py-3 rounded-lg">
+                                        <LoginIcon /> Iniciar sesión
+                                    </Link>
+                                    <Link href="/signup" onClick={() => setMobileMenuOpen(false)} className="flex items-center justify-center gap-1.5 bg-white border border-brand text-brand font-lexend font-bold text-sm px-4 py-3 rounded-lg">
+                                        Crear cuenta
+                                    </Link>
+                                </div>
+                            )}
+                        </div>
+                    </nav>
+                </div>
+            ) : null}
         </header>
     );
 };

@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 
 import type { CuestionarioPayload } from "@/interfaces/actividades";
 import { useActividadesStore } from "@/stores/actividadesStore";
 import { useUiStore } from "@/stores/uiStore";
+import { analyzeRetroalimentacion } from "@/utils/microtipsAnalysis";
 
 interface RetroalimentacionStepProps {
   onNext: () => void;
@@ -31,6 +32,8 @@ export function RetroalimentacionStep({ onNext, onPrev }: RetroalimentacionStepP
   const questionnaireDraft = useActividadesStore((state) => state.questionnaireDraft);
   const setQuestionnaireDraft = useActividadesStore((state) => state.setQuestionnaireDraft);
   const setEditorSectionCompleted = useUiStore((state) => state.setEditorSectionCompleted);
+  const addMicrotip = useUiStore((state) => state.addMicrotip);
+  const clearMicrotipsForSection = useUiStore((state) => state.clearMicrotipsForSection);
   const feedbackType: "inmediato" | "finalizar" =
     questionnaireDraft?.feedbackMode === "at-end" ? "finalizar" : "inmediato";
   const showCorrect = questionnaireDraft?.showCorrectAnswers ?? true;
@@ -78,6 +81,20 @@ export function RetroalimentacionStep({ onNext, onPrev }: RetroalimentacionStepP
   useEffect(() => {
     setEditorSectionCompleted("retroalimentacion", isRetroalimentacionValid);
   }, [isRetroalimentacionValid, setEditorSectionCompleted]);
+
+  const analysisTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (!questionnaireDraft) return;
+    if (analysisTimerRef.current) clearTimeout(analysisTimerRef.current);
+    analysisTimerRef.current = setTimeout(() => {
+      clearMicrotipsForSection("retroalimentacion");
+      const tips = analyzeRetroalimentacion(questionnaireDraft);
+      tips.forEach((tip) => addMicrotip(tip));
+    }, 1000);
+    return () => {
+      if (analysisTimerRef.current) clearTimeout(analysisTimerRef.current);
+    };
+  }, [questionnaireDraft?.generalMessage, addMicrotip, clearMicrotipsForSection]);
 
   return (
     <div className="flex flex-col gap-8">

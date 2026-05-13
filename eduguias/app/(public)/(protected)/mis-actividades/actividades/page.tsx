@@ -77,6 +77,9 @@ function VerdaderoFalsoIcon({ color }: { color: string }) {
 }
 
 // ── Data ─────────────────────────────────────────────────────────────────────
+//
+// NOTE: Solo se mantiene el tipo "cuestionario" por ahora.
+// Las demás plantillas están comentadas hasta su implementación.
 
 const templates = [
     {
@@ -88,42 +91,42 @@ const templates = [
         icon: CuestionarioIcon,
         editorType: "cuestionario",
     },
-    {
-        id: "union",
-        label: "Union de conceptos",
-        description: "Engage with media",
-        bg: "bg-purple-50",
-        iconColor: "#9333EA",
-        icon: UnionConceptosIcon,
-        editorType: "union-conceptos",
-    },
-    {
-        id: "lectura",
-        label: "Lectura",
-        description: "Engage with media",
-        bg: "bg-yellow-50",
-        iconColor: "#D97706",
-        icon: LecturaIcon,
-        editorType: "lectura",
-    },
-    {
-        id: "video",
-        label: "Video guia",
-        description: "Engage with media",
-        bg: "bg-rose-50",
-        iconColor: "#E11D48",
-        icon: VideoGuiaIcon,
-        editorType: "video-guia",
-    },
-    {
-        id: "verdadero",
-        label: "Verdadero - Falso",
-        description: "Engage with media",
-        bg: "bg-teal-50",
-        iconColor: "#0D9488",
-        icon: VerdaderoFalsoIcon,
-        editorType: "verdadero-falso",
-    },
+    // {
+    //     id: "union",
+    //     label: "Union de conceptos",
+    //     description: "Engage with media",
+    //     bg: "bg-purple-50",
+    //     iconColor: "#9333EA",
+    //     icon: UnionConceptosIcon,
+    //     editorType: "union-conceptos",
+    // },
+    // {
+    //     id: "lectura",
+    //     label: "Lectura",
+    //     description: "Engage with media",
+    //     bg: "bg-yellow-50",
+    //     iconColor: "#D97706",
+    //     icon: LecturaIcon,
+    //     editorType: "lectura",
+    // },
+    // {
+    //     id: "video",
+    //     label: "Video guia",
+    //     description: "Engage with media",
+    //     bg: "bg-rose-50",
+    //     iconColor: "#E11D48",
+    //     icon: VideoGuiaIcon,
+    //     editorType: "video-guia",
+    // },
+    // {
+    //     id: "verdadero",
+    //     label: "Verdadero - Falso",
+    //     description: "Engage with media",
+    //     bg: "bg-teal-50",
+    //     iconColor: "#0D9488",
+    //     icon: VerdaderoFalsoIcon,
+    //     editorType: "verdadero-falso",
+    // },
 ];
 
 const getTypeVisualConfig = (editorType: string) => {
@@ -200,7 +203,7 @@ export default function EligePlantilla() {
     return (
         <div className="min-h-screen bg-[#F6F6F8] font-[Lexend]">
 
-            <main className="max-w-360 mx-auto px-6 lg:px-38.5 py-10">
+            <main id="main-content" className="max-w-360 mx-auto px-4 sm:px-6 lg:px-38.5 py-6 sm:py-10">
                 {/* Header row */}
                 <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-10">
                     <div>
@@ -238,7 +241,7 @@ export default function EligePlantilla() {
                 </div>
 
                 {/* Template cards */}
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-12">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-12 max-w-3xl">
                     {templates.map((tpl) => {
                         const Icon = tpl.icon;
                         return (

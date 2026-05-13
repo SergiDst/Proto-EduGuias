@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 
 import type {
     CuestionarioPayload,
@@ -11,6 +11,7 @@ import type {
 } from "../interfaces/actividades";
 import { useActividadesStore } from "../stores/actividadesStore";
 import { useUiStore } from "../stores/uiStore";
+import { analyzePaleta } from "../utils/microtipsAnalysis";
 
 interface ColoresStepProps {
     onNext: () => void;
@@ -90,6 +91,8 @@ export function ColoresStep({ onNext, onPrev }: ColoresStepProps) {
     const selectedActividad = useActividadesStore((state) => state.selectedActividad);
     const questionnaireDraft = useActividadesStore((state) => state.questionnaireDraft);
     const setEditorSectionCompleted = useUiStore((state) => state.setEditorSectionCompleted);
+    const addMicrotip = useUiStore((state) => state.addMicrotip);
+    const clearMicrotipsForSection = useUiStore((state) => state.clearMicrotipsForSection);
 
     const preview = useMemo(() => {
         const draftSource = questionnaireDraft ?? (selectedActividad?.type === "cuestionario" ? selectedActividad.payload : null);
@@ -125,11 +128,11 @@ export function ColoresStep({ onNext, onPrev }: ColoresStepProps) {
             : preview.palette.fontFamily === "source-sans-3"
                 ? "var(--font-source-sans-3), sans-serif"
                 : "var(--font-inter), sans-serif";
-    const isPaletaValid = useMemo(() => {
+    const validationState = useMemo(() => {
         const draftSource = questionnaireDraft ?? (selectedActividad?.type === "cuestionario" ? selectedActividad.payload : null);
 
         if (!draftSource || !isCuestionarioPayload(draftSource)) {
-            return false;
+            return { isValid: false, message: "Carga un cuestionario para continuar" };
         }
 
         const hasInstructions = draftSource.instructions.trim().length >= 10;
@@ -138,12 +141,38 @@ export function ColoresStep({ onNext, onPrev }: ColoresStepProps) {
             ? draftSource.questions[0].title.trim().length >= 5 && draftSource.questions[0].options.length >= 2
             : false;
 
-        return hasInstructions && hasQuestion && isFirstQuestionValid;
+        if (!hasInstructions) {
+            return { isValid: false, message: "Las instrucciones deben tener al menos 10 caracteres" };
+        }
+        if (!hasQuestion) {
+            return { isValid: false, message: "Necesitas al menos una pregunta" };
+        }
+        if (!isFirstQuestionValid) {
+            return { isValid: false, message: "La primera pregunta necesita un título de al menos 5 caracteres y 2 opciones" };
+        }
+
+        return { isValid: true, message: "" };
     }, [questionnaireDraft, selectedActividad]);
+
+    const isPaletaValid = validationState.isValid;
 
     useEffect(() => {
         setEditorSectionCompleted("paleta", isPaletaValid);
     }, [isPaletaValid, setEditorSectionCompleted]);
+
+    const analysisTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    useEffect(() => {
+        if (!questionnaireDraft) return;
+        if (analysisTimerRef.current) clearTimeout(analysisTimerRef.current);
+        analysisTimerRef.current = setTimeout(() => {
+            clearMicrotipsForSection("paleta");
+            const tips = analyzePaleta(questionnaireDraft);
+            tips.forEach((tip) => addMicrotip(tip));
+        }, 800);
+        return () => {
+            if (analysisTimerRef.current) clearTimeout(analysisTimerRef.current);
+        };
+    }, [questionnaireDraft?.palette, addMicrotip, clearMicrotipsForSection]);
 
     return (
         <div className="flex flex-col items-center gap-8 pb-8">
@@ -300,18 +329,25 @@ export function ColoresStep({ onNext, onPrev }: ColoresStepProps) {
                     </svg>
                     Volver atras
                 </button>
-                <button
-                onClick={onNext}
-                    disabled={!isPaletaValid}
-                    className={`flex items-center gap-2 rounded-xl px-8 py-3 text-base font-bold text-white shadow-lg shadow-[rgba(19,91,236,0.2)] transition-colors ${
-                        isPaletaValid ? "bg-[#135BEC] hover:bg-[#0f4fd1]" : "bg-[#94A3B8] cursor-not-allowed"
-                    }`}
-            >
-                Guardar y revisar
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                    <path d="M12.175 9H0V7H12.175L6.575 1.4L8 0L16 8L8 16L6.575 14.6L12.175 9Z" fill="white" />
-                </svg>
-            </button>
+                <div className="flex flex-col items-end gap-2">
+                    <button
+                        onClick={onNext}
+                        disabled={!isPaletaValid}
+                        className={`flex items-center gap-2 rounded-xl px-8 py-3 text-base font-bold text-white shadow-lg shadow-[rgba(19,91,236,0.2)] transition-colors ${
+                            isPaletaValid ? "bg-[#135BEC] hover:bg-[#0f4fd1]" : "bg-[#94A3B8] cursor-not-allowed"
+                        }`}
+                    >
+                        Guardar y revisar
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                            <path d="M12.175 9H0V7H12.175L6.575 1.4L8 0L16 8L8 16L6.575 14.6L12.175 9Z" fill="white" />
+                        </svg>
+                    </button>
+                    {!isPaletaValid && (
+                        <p className="text-sm text-[#EF4444] font-medium">
+                            {validationState.message}
+                        </p>
+                    )}
+                </div>
             </div>
             
         </div>

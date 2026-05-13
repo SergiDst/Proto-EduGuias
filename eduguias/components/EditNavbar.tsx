@@ -47,7 +47,21 @@ const navIcons: Record<EditorSectionId, ReactElement> = {
     ),
 };
 
-export default function EditNavbar({ progress, tipoActividad, seccionActual }: { progress: number; tipoActividad: string; seccionActual?: string }) {
+export default function EditNavbar({
+    progress,
+    tipoActividad,
+    seccionActual,
+    isMobileOpen = false,
+    onMobileClose,
+    isDesktop = true,
+}: {
+    progress: number;
+    tipoActividad: string;
+    seccionActual?: string;
+    isMobileOpen?: boolean;
+    onMobileClose?: () => void;
+    isDesktop?: boolean;
+}) {
     const navItems = getSectionsByActivity(tipoActividad);
     const completion = useUiStore((state) => state.editorSectionCompletion);
     const requiredSections = new Set<EditorSectionId>(["objetivo", "contenido", "retroalimentacion", "paleta"]);
@@ -75,8 +89,31 @@ export default function EditNavbar({ progress, tipoActividad, seccionActual }: {
         return false;
     };
 
+    const visibleClass = isDesktop
+        ? "lg:translate-x-0"
+        : isMobileOpen
+            ? "translate-x-0"
+            : "-translate-x-full";
+
     return (
-        <aside className="fixed left-0 top-16 bottom-0 z-20 w-55 shrink-0 flex flex-col border-r border-slate-200 bg-white">
+        <aside
+            aria-label="Secciones de la actividad"
+            className={`fixed left-0 top-16 bottom-0 z-40 w-64 lg:w-55 shrink-0 flex flex-col border-r border-slate-200 bg-white transition-transform duration-300 ${visibleClass}`}
+        >
+            {/* Mobile close button */}
+            {!isDesktop && onMobileClose ? (
+                <button
+                    type="button"
+                    onClick={onMobileClose}
+                    className="absolute top-2 right-2 p-2 rounded-lg hover:bg-slate-100 lg:hidden"
+                    aria-label="Cerrar menú"
+                >
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M6 6l12 12M6 18L18 6" stroke="#475569" strokeWidth="1.8" strokeLinecap="round" />
+                    </svg>
+                </button>
+            ) : null}
+
             {/* Type label */}
             <div className="px-5 pt-6 pb-4 border-b border-slate-100">
                 <p className="font-[Lexend] text-[11px] font-bold text-[#0F172A] tracking-[0.5px] uppercase">
@@ -86,7 +123,7 @@ export default function EditNavbar({ progress, tipoActividad, seccionActual }: {
             </div>
 
             {/* Nav */}
-            <nav className="flex flex-col gap-1 px-3 py-4 flex-1">
+            <nav className="flex flex-col gap-1 px-3 py-4 flex-1 overflow-y-auto">
                 {navItems.map((item) => {
                     const active = seccionActual === item.id;
                     const locked = isSectionLocked(item.id);
@@ -95,9 +132,12 @@ export default function EditNavbar({ progress, tipoActividad, seccionActual }: {
                             key={item.id}
                             href={locked ? "#" : `/mis-actividades/${tipoActividad}/${item.id}`}
                             aria-disabled={locked}
+                            aria-current={active ? "page" : undefined}
                             onClick={(event) => {
                                 if (locked) {
                                     event.preventDefault();
+                                } else if (!isDesktop) {
+                                    onMobileClose?.();
                                 }
                             }}
                             className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-left transition-colors ${
@@ -108,7 +148,7 @@ export default function EditNavbar({ progress, tipoActividad, seccionActual }: {
                                         : "text-[#475569] hover:bg-slate-50 hover:text-[#0F172A]"
                                 }`}
                         >
-                            <span className={active ? "text-[#135BEC]" : "text-[#94A3B8]"}>
+                            <span className={active ? "text-[#135BEC]" : "text-[#94A3B8]"} aria-hidden="true">
                                 {navIcons[item.id]}
                             </span>
                             {item.label}
@@ -123,7 +163,7 @@ export default function EditNavbar({ progress, tipoActividad, seccionActual }: {
                     <span className="font-[Lexend] text-xs text-[#475569]">Progreso</span>
                     <span className="font-[Lexend] text-xs font-bold text-[#0F172A]">{displayProgress}%</span>
                 </div>
-                <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={displayProgress}>
                     <div
                         className="h-full bg-[#135BEC] rounded-full transition-all"
                         style={{ width: `${displayProgress}%` }}

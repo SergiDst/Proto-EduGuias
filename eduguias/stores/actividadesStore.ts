@@ -23,6 +23,7 @@ const initialState = {
     actividades: [],
     selectedActividad: null,
     questionnaireDraft: null,
+    draftSubject: "",
     loading: false,
     error: null as string | null,
     fetched: false,
@@ -223,6 +224,10 @@ export const useActividadesStore = create<ActividadesStore>((set, get) => ({
                 ),
             };
         });
+    },
+
+    setDraftSubject: (subject: string) => {
+        set({ draftSubject: subject });
     },
 
     updateSelectedActividadPayload: (payload: CuestionarioPayload) => {

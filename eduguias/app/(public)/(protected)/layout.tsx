@@ -31,5 +31,12 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
         return null;
     }
 
-    return <>{children}</>;
+    return (
+        <>
+            <a href="#main-content" className="skip-to-content">
+                Saltar al contenido principal
+            </a>
+            {children}
+        </>
+    );
 }

@@ -3,7 +3,15 @@ import { browserLocalPersistence, browserSessionPersistence, reload, setPersiste
 import { AuthStore } from "@/interfaces/authStore";
 import { getFirebaseErrorMessage } from "@/utils/firebaseErrors";
 import { auth } from "@/lib/auth";
-import { listenAuthState, loginWithEmail, logoutFirebase, resetPasswordFirebase, signupWithEmail } from "@/services/authServices";
+import {
+    listenAuthState,
+    loginWithEmail,
+    logoutFirebase,
+    resetPasswordFirebase,
+    signupWithEmail,
+    updateUserEmail,
+    updateUserPassword,
+} from "@/services/authServices";
 
 export const useAuthStore = create<AuthStore>((set) => ({
     user: null,
@@ -62,6 +70,29 @@ export const useAuthStore = create<AuthStore>((set) => ({
     signUp: async (email, password) => {
         try {
             await signupWithEmail(email, password);
+        } catch (error) {
+            const errorMessage = getFirebaseErrorMessage(error);
+            throw new Error(errorMessage);
+        }
+    },
+
+    changeEmail: async (currentPassword, newEmail) => {
+        try {
+            await updateUserEmail(currentPassword, newEmail);
+            // Refresh user reference
+            if (auth.currentUser) {
+                await reload(auth.currentUser);
+                set({ user: auth.currentUser });
+            }
+        } catch (error) {
+            const errorMessage = getFirebaseErrorMessage(error);
+            throw new Error(errorMessage);
+        }
+    },
+
+    changePassword: async (currentPassword, newPassword) => {
+        try {
+            await updateUserPassword(currentPassword, newPassword);
         } catch (error) {
             const errorMessage = getFirebaseErrorMessage(error);
             throw new Error(errorMessage);

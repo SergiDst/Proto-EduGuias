@@ -9,5 +9,7 @@ export interface AuthStore {
     logout: () => Promise<void>;
     resetPassword: (email: string) => Promise<void>;
     signUp: (email: string, password: string) => Promise<void>;
+    changeEmail: (currentPassword: string, newEmail: string) => Promise<void>;
+    changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
     reset: () => void;
 }

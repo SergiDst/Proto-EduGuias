@@ -6,6 +6,7 @@ import Image from "next/image";
 import type { CuestionarioPayload, Question } from "@/interfaces/actividades";
 import { useActividadesStore } from "@/stores/actividadesStore";
 import { useUiStore } from "@/stores/uiStore";
+import { analyzeContenido } from "@/utils/microtipsAnalysis";
 
 interface ContenidoStepProps {
     onNext: () => void;
@@ -49,6 +50,8 @@ export function ContenidoStep({ onNext, onPrev }: ContenidoStepProps) {
     const questionnaireDraft = useActividadesStore((state) => state.questionnaireDraft);
     const setQuestionnaireDraft = useActividadesStore((state) => state.setQuestionnaireDraft);
     const setEditorSectionCompleted = useUiStore((state) => state.setEditorSectionCompleted);
+    const addMicrotip = useUiStore((state) => state.addMicrotip);
+    const clearMicrotipsForSection = useUiStore((state) => state.clearMicrotipsForSection);
     const [activeQuestionIndex, setActiveQuestionIndex] = useState(0);
     const [isDraggingImage, setIsDraggingImage] = useState(false);
     const [imageError, setImageError] = useState<string | null>(null);
@@ -232,10 +235,6 @@ export function ContenidoStep({ onNext, onPrev }: ContenidoStepProps) {
 
     const activeQuestion = useMemo(() => question, [question]);
     const contenidoValidationMessage = useMemo(() => {
-        if (draft.instructions.trim().length < 10) {
-            return "Completa las instrucciones (minimo 10 caracteres).";
-        }
-
         if (questions.length === 0) {
             return "Agrega al menos una pregunta.";
         }
@@ -273,12 +272,26 @@ export function ContenidoStep({ onNext, onPrev }: ContenidoStepProps) {
         }
 
         return null;
-    }, [draft.instructions, questions]);
+    }, [questions]);
     const isContenidoValid = contenidoValidationMessage === null;
 
     useEffect(() => {
         setEditorSectionCompleted("contenido", isContenidoValid);
     }, [isContenidoValid, setEditorSectionCompleted]);
+
+    const analysisTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+    useEffect(() => {
+        if (!draft) return;
+        if (analysisTimer.current) clearTimeout(analysisTimer.current);
+        analysisTimer.current = setTimeout(() => {
+            clearMicrotipsForSection("contenido");
+            const tips = analyzeContenido(draft);
+            tips.forEach((tip) => addMicrotip(tip));
+        }, 1000);
+        return () => {
+            if (analysisTimer.current) clearTimeout(analysisTimer.current);
+        };
+    }, [draft.questions, addMicrotip, clearMicrotipsForSection]);
 
     return (
         <div className="flex flex-col gap-8">
@@ -290,22 +303,11 @@ export function ContenidoStep({ onNext, onPrev }: ContenidoStepProps) {
             </div>
 
             <div className="flex flex-col gap-6 xl:flex-row xl:items-start">
-                <div className="w-full  rounded-xl border border-[#E2E8F0] bg-white p-8 shadow-sm">
-                    <div className="flex items-center justify-end">
-
-                        {questions.length > 1 ? (
-                            <button
-                                type="button"
-                                onClick={removeQuestion}
-                                className="text-xs font-bold text-[#EF4444] hover:text-[#DC2626]"
-                            >
-                                Eliminar pregunta
-                            </button>
-                        ) : null}
-                    </div>
+                <div className="w-full rounded-2xl border border-[#E2E8F0] bg-white p-8 shadow-sm">
                     <div className="space-y-8">
+                        {/* Instrucciones */}
                         <div className="space-y-3">
-                            <label className="font-lexend text-sm font-bold text-[#334155]">Instrucciones de la actividad</label>
+                            <label className="font-lexend text-sm font-bold text-[#0F172A]">Instrucciones para el estudiante</label>
                             <textarea
                                 value={draft.instructions}
                                 onChange={(event) =>
@@ -314,14 +316,29 @@ export function ContenidoStep({ onNext, onPrev }: ContenidoStepProps) {
                                         instructions: event.target.value,
                                     }))
                                 }
-                                className="w-full min-h-28 p-4 rounded-lg border border-[#E2E8F0] bg-white font-lexend text-base text-[#0F172A] placeholder-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#135BEC] focus:border-transparent"
-                                placeholder="Escriba una instruccion breve y clara para el cuestionario"
+                                className="w-full min-h-24 p-4 rounded-xl border border-[#E2E8F0] bg-white font-lexend text-base text-[#0F172A] placeholder-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#135BEC] focus:border-transparent resize-none"
+                                placeholder="Ej: Lee cada pregunta cuidadosamente. Selecciona la opción que consideres correcta. Tienes tiempo ilimitado para responder."
                             />
+                            <p className="font-lexend text-xs text-[#94A3B8]">
+                                Estas instrucciones aparecerán al inicio del cuestionario para guiar a los estudiantes.
+                            </p>
                         </div>
 
-                        <div className="space-y-3">
-                            <label className="font-lexend text-sm font-bold text-[#334155]">Titulo de la pregunta</label>
+                        <div className="flex items-center justify-end mb-2">
+                            {questions.length > 1 ? (
+                                <button
+                                    type="button"
+                                    onClick={removeQuestion}
+                                    className="text-xs font-bold text-[#EF4444] hover:text-[#DC2626]"
+                                >
+                                    Eliminar pregunta
+                                </button>
+                            ) : null}
+                        </div>
 
+                        {/* Question title */}
+                        <div className="space-y-3">
+                            <label className="font-lexend text-sm font-bold text-[#0F172A]">Titulo de la pregunta</label>
                             <textarea
                                 value={activeQuestion.title}
                                 onChange={(event) =>
@@ -330,13 +347,14 @@ export function ContenidoStep({ onNext, onPrev }: ContenidoStepProps) {
                                         title: event.target.value,
                                     }))
                                 }
-                                className="w-full min-h-24 p-4 rounded-lg border border-[#E2E8F0] bg-white font-lexend text-base text-[#0F172A] placeholder-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#135BEC] focus:border-transparent"
+                                className="w-full min-h-32 p-4 rounded-xl border border-[#E2E8F0] bg-white font-lexend text-base text-[#0F172A] placeholder-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#135BEC] focus:border-transparent resize-none"
                                 placeholder="Escriba un titulo descriptivo para la pregunta"
                             />
                         </div>
 
+                        {/* Image upload area – centered icon + text */}
                         <div className="space-y-3">
-                            <label className="font-lexend text-sm font-bold text-[#334155]">Imagen de soporte (opcional)</label>
+                            <label className="font-lexend text-sm font-bold text-[#0F172A]">Imagen de soporte (opcional)</label>
                             <input
                                 ref={imageInputRef}
                                 type="file"
@@ -347,7 +365,9 @@ export function ContenidoStep({ onNext, onPrev }: ContenidoStepProps) {
                                     void handleImageFile(file);
                                 }}
                             />
-                            <div
+                            <button
+                                type="button"
+                                onClick={() => imageInputRef.current?.click()}
                                 onDragOver={(event) => {
                                     event.preventDefault();
                                     setIsDraggingImage(true);
@@ -359,115 +379,135 @@ export function ContenidoStep({ onNext, onPrev }: ContenidoStepProps) {
                                     const file = event.dataTransfer.files?.[0] ?? null;
                                     void handleImageFile(file);
                                 }}
-                                className={`rounded-xl border-2 border-dashed p-5 transition-colors ${isDraggingImage ? "border-[#135BEC] bg-[#EEF4FF]" : "border-[#CBD5E1] bg-[#F8FAFC]"
+                                className={`w-full rounded-xl border-2 border-dashed py-10 px-4 transition-colors flex flex-col items-center justify-center gap-3 ${isDraggingImage ? "border-[#135BEC] bg-[#EEF4FF]" : "border-[#CBD5E1] bg-[#F8FAFC] hover:border-[#94A3B8]"
                                     }`}
                             >
-                                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                                    <p className="font-lexend text-sm text-[#334155]">
-                                        Arrastra y suelta una imagen aqui o selecciona un archivo desde tu equipo.
-                                    </p>
-                                    <button
-                                        type="button"
-                                        onClick={() => imageInputRef.current?.click()}
-                                        className="inline-flex items-center justify-center rounded-lg border border-[#135BEC] px-4 py-2 font-lexend text-sm font-bold text-[#135BEC] transition-colors hover:bg-[#EEF4FF]"
-                                    >
-                                        Seleccionar imagen
-                                    </button>
-                                </div>
-                                {activeQuestion.imageUrl ? (
-                                    <div className="mt-4 space-y-3">
-                                        <Image
-                                            src={activeQuestion.imageUrl}
-                                            alt={activeQuestion.imageAlt?.trim() || "Vista previa de la imagen"}
-                                            width={800}
-                                            height={480}
-                                            className="max-h-48 w-full rounded-lg border border-[#E2E8F0] object-contain bg-white"
+                                <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                                    <rect x="5" y="9" width="22" height="16" rx="2" stroke="#94A3B8" strokeWidth="1.8" fill="none" />
+                                    <circle cx="11" cy="15" r="1.6" fill="#94A3B8" />
+                                    <path d="M5 21l5.5-5.5L17 22l4-4 6 7" stroke="#94A3B8" strokeWidth="1.8" strokeLinejoin="round" fill="none" />
+                                </svg>
+                                <p className="font-lexend text-sm text-[#64748B] text-center leading-snug">
+                                    Arrastra y suelta o presiona<br />para cargar una imagen
+                                </p>
+                            </button>
+                            {activeQuestion.imageUrl ? (
+                                <div className="space-y-3 mt-2">
+                                    <Image
+                                        src={activeQuestion.imageUrl}
+                                        alt={activeQuestion.imageAlt?.trim() || "Vista previa de la imagen"}
+                                        width={800}
+                                        height={480}
+                                        className="max-h-48 w-full rounded-lg border border-[#E2E8F0] object-contain bg-white"
+                                    />
+                                    <div className="flex items-center justify-between gap-3">
+                                        <input
+                                            type="text"
+                                            value={activeQuestion.imageAlt ?? ""}
+                                            onChange={(event) =>
+                                                updateQuestion((currentQuestion) => ({
+                                                    ...currentQuestion,
+                                                    imageAlt: event.target.value,
+                                                }))
+                                            }
+                                            className="flex-1 rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 font-lexend text-sm text-[#0F172A] placeholder-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#135BEC] focus:border-transparent"
+                                            placeholder="Describe la imagen para accesibilidad (alt)"
                                         />
                                         <button
                                             type="button"
                                             onClick={clearImage}
-                                            className="text-xs font-bold text-[#EF4444] hover:text-[#DC2626]"
+                                            className="text-xs font-bold text-[#EF4444] hover:text-[#DC2626] whitespace-nowrap"
                                         >
                                             Quitar imagen
                                         </button>
                                     </div>
-                                ) : null}
-                            </div>
-                            {imageError ? <p className="font-lexend text-xs text-[#DC2626]">{imageError}</p> : null}
-                            {activeQuestion.imageUrl ? (
-                                <div className="space-y-2">
-                                    <label className="font-lexend text-sm font-bold text-[#334155]">Texto alternativo (obligatorio)</label>
-                                    <input
-                                        type="text"
-                                        value={activeQuestion.imageAlt ?? ""}
-                                        onChange={(event) =>
-                                            updateQuestion((currentQuestion) => ({
-                                                ...currentQuestion,
-                                                imageAlt: event.target.value,
-                                            }))
-                                        }
-                                        className="w-full rounded-lg border border-[#E2E8F0] bg-white px-4 py-3 font-lexend text-base text-[#0F172A] placeholder-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#135BEC] focus:border-transparent"
-                                        placeholder="Describe brevemente la imagen para accesibilidad"
-                                    />
                                 </div>
                             ) : null}
-                            <p className="font-lexend text-xs text-[#64748B]">
-                                La imagen es opcional. Si subes una imagen, debes completar el texto alternativo.
-                            </p>
+                            {imageError ? <p className="font-lexend text-xs text-[#DC2626]">{imageError}</p> : null}
                         </div>
 
-                        <div className="space-y-4 pt-4 border-t border-[#F1F5F9]">
-                            <div className="flex items-center justify-between gap-3">
-                                <label className="font-lexend text-sm font-bold text-[#334155] block">Opciones de respuesta</label>
-                                <button
-                                    type="button"
-                                    onClick={addOption}
-                                    className="flex items-center gap-2 px-3 py-2 text-[#135BEC] font-lexend font-bold text-sm hover:bg-[#EEF2FF] rounded transition-colors"
-                                >
-                                    Añadir opción
-                                </button>
-                            </div>
-
-                            <div className="space-y-3">
-                                {activeQuestion.options.map((option) => (
-                                    <div key={option.id} className="flex items-start gap-3 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-3">
+                        {/* Respuesta correcta */}
+                        <div className="space-y-3">
+                            <label className="font-lexend text-sm font-bold text-[#0F172A]">Respuesta correcta</label>
+                            {(() => {
+                                const correctOption = activeQuestion.options.find((opt) => opt.isCorrect)
+                                    ?? activeQuestion.options[0];
+                                if (!correctOption) return null;
+                                return (
+                                    <div className="flex items-center gap-3">
+                                        <button
+                                            type="button"
+                                            onClick={() => setCorrectOption(correctOption.id)}
+                                            aria-label="Esta es la respuesta correcta"
+                                            className="w-5 h-5 shrink-0 rounded-full border-2 border-[#135BEC] flex items-center justify-center"
+                                        >
+                                            <span className="w-2.5 h-2.5 rounded-full bg-[#135BEC]" />
+                                        </button>
                                         <input
-                                            type="radio"
-                                            name="correct-answer"
-                                            checked={option.isCorrect}
-                                            onChange={() => setCorrectOption(option.id)}
-                                            className="mt-3 w-5 h-5 rounded-full border border-[#CBD5E1] cursor-pointer"
+                                            type="text"
+                                            value={correctOption.label}
+                                            onChange={(event) => updateOption(correctOption.id, event.target.value)}
+                                            className="flex-1 px-4 py-3 rounded-xl border border-[#E2E8F0] bg-white font-lexend text-base text-[#0F172A] placeholder-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#135BEC] focus:border-transparent"
+                                            placeholder={`Opción 1`}
                                         />
-                                        <div className="flex-1 space-y-2">
+                                    </div>
+                                );
+                            })()}
+                        </div>
+
+                        {/* Opciones de respuesta (todas las que NO son correctas) */}
+                        <div className="space-y-3">
+                            <label className="font-lexend text-sm font-bold text-[#0F172A]">Opciones de respuesta</label>
+                            <div className="space-y-3">
+                                {activeQuestion.options
+                                    .filter((opt) => !opt.isCorrect || opt.id !== (activeQuestion.options.find((o) => o.isCorrect)?.id ?? activeQuestion.options[0]?.id))
+                                    .map((option, idx) => (
+                                        <div key={option.id} className="flex items-center gap-3">
+                                            <button
+                                                type="button"
+                                                onClick={() => setCorrectOption(option.id)}
+                                                aria-label="Marcar como respuesta correcta"
+                                                className="w-5 h-5 shrink-0 rounded-full border-2 border-[#CBD5E1] hover:border-[#135BEC] transition-colors"
+                                            />
                                             <input
                                                 type="text"
                                                 value={option.label}
                                                 onChange={(event) => updateOption(option.id, event.target.value)}
-                                                className="w-full px-3 py-3.5 rounded-lg border border-[#E2E8F0] bg-white font-lexend text-base text-[#0F172A] focus:outline-none focus:ring-2 focus:ring-[#135BEC] focus:border-transparent"
-                                                placeholder="Escriba una opcion"
+                                                className="flex-1 px-4 py-3 rounded-xl border border-[#E2E8F0] bg-white font-lexend text-base text-[#0F172A] placeholder-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#135BEC] focus:border-transparent"
+                                                placeholder={`Opción ${idx + 2}`}
                                             />
-                                            <div className="flex items-center justify-between gap-2">
-                                                <span className="font-lexend text-xs text-[#64748B]">
-                                                    {option.isCorrect ? "Esta respuesta es la correcta" : "Marca la opción correcta con el selector"}
-                                                </span>
-                                                {activeQuestion.options.length > 2 ? (
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => removeOption(option.id)}
-                                                        className="text-xs font-bold text-[#EF4444] hover:text-[#DC2626]"
-                                                    >
-                                                        Eliminar
-                                                    </button>
-                                                ) : null}
-                                            </div>
+                                            {activeQuestion.options.length > 2 ? (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => removeOption(option.id)}
+                                                    aria-label="Eliminar opción"
+                                                    className="shrink-0 p-2 text-[#94A3B8] hover:text-[#EF4444] transition-colors"
+                                                >
+                                                    <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                                                        <path d="M3 4.5h12M7.5 7.5v6M10.5 7.5v6M4.5 4.5l.75 9.75A1.5 1.5 0 0 0 6.748 15.75h4.504a1.5 1.5 0 0 0 1.498-1.5L13.5 4.5M6.75 4.5V3a1.5 1.5 0 0 1 1.5-1.5h1.5a1.5 1.5 0 0 1 1.5 1.5v1.5"
+                                                            stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                                                    </svg>
+                                                </button>
+                                            ) : null}
                                         </div>
-                                    </div>
-                                ))}
+                                    ))}
                             </div>
+                            <button
+                                type="button"
+                                onClick={addOption}
+                                className="flex items-center gap-2 px-1 py-2 text-[#135BEC] font-lexend font-bold text-sm hover:underline"
+                            >
+                                <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                                    <circle cx="9" cy="9" r="7.5" stroke="currentColor" strokeWidth="1.5" />
+                                    <path d="M9 5.5V12.5M5.5 9H12.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                                </svg>
+                                Añadir opción
+                            </button>
                         </div>
 
+                        {/* Explicación */}
                         <div className="space-y-3 pt-4 border-t border-[#F1F5F9]">
-                            <label className="font-lexend text-sm font-bold text-[#334155]">Explicación de respuesta correcta</label>
+                            <label className="font-lexend text-sm font-bold text-[#0F172A]">Explicación de respuesta correcta</label>
                             <textarea
                                 value={activeQuestion.explanation ?? ""}
                                 onChange={(event) =>
@@ -476,14 +516,17 @@ export function ContenidoStep({ onNext, onPrev }: ContenidoStepProps) {
                                         explanation: event.target.value,
                                     }))
                                 }
-                                className="w-full min-h-20 p-4 rounded-lg border border-[#E2E8F0] bg-white font-lexend text-sm text-[#0F172A] placeholder-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#135BEC] focus:border-transparent"
+                                className="w-full min-h-24 p-4 rounded-xl border border-[#E2E8F0] bg-white font-lexend text-base text-[#0F172A] placeholder-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#135BEC] focus:border-transparent resize-none"
                                 placeholder="Escriba un contexto de porque la respuesta es correcta"
                             />
                         </div>
                     </div>
                 </div>
 
-                <aside className="flex shrink-0 flex-row gap-3 self-start px-1 pt-2 xl:flex-col xl:pt-2">
+                <aside
+                    aria-label="Lista de preguntas"
+                    className="flex shrink-0 flex-row gap-3 self-start px-1 pt-2 xl:flex-col xl:pt-2 flex-wrap"
+                >
                     {questions.map((_, index) => {
                         const isActive = index === safeActiveQuestionIndex;
 

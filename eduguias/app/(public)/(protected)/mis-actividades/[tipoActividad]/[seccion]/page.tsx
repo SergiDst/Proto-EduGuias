@@ -96,46 +96,37 @@ export default function EditorSeccionPage() {
         switch (seccion) {
             case "objetivo":
                 return (
-                    <div className="p-8">
+                    <div className="p-4 sm:p-6 lg:p-8">
                         <ObjetivoStep onNext={handleNext} />
                     </div>
                 );
             case "contenido":
                 return (
-                    <div className="p-8">
+                    <div className="p-4 sm:p-6 lg:p-8">
                         <ContenidoStep onNext={handleNext} onPrev={handlePrev} />
                     </div>
                 );
             case "retroalimentacion":
                 return (
-                    <div className="p-8">
+                    <div className="p-4 sm:p-6 lg:p-8">
                         <RetroalimentacionStep onNext={handleNext} onPrev={handlePrev} />
                     </div>
                 );
             case "paleta":
                 return (
-                    <div className="p-8">
+                    <div className="p-4 sm:p-6 lg:p-8">
                         <ColoresStep onNext={handleNext} onPrev={handlePrev} />
                     </div>
                 );
             case "evaluacion":
                 return (
-                    <div className="p-8">
-                        <EvaluacionStep onNext={handleNext} onPrev={handlePrev} />
+                    <div className="p-4 sm:p-6 lg:p-8">
+                        <EvaluacionStep onNext={handleNext} onPrev={handlePrev} tipoActividad={tipoActividad} />
                     </div>
                 );
             case "descargar":
                 return (
-                    <DescargaStep
-                        onDownloadHtml={() => {
-                            // TODO: Replace with real HTML export logic.
-                            console.log("Descargar HTML");
-                        }}
-                        onDownloadScorm={() => {
-                            // TODO: Replace with real SCORM export logic.
-                            console.log("Descargar SCORM");
-                        }}
-                    />
+                    <DescargaStep />
                 );
             default:
                 break;
@@ -143,7 +134,7 @@ export default function EditorSeccionPage() {
     }
 
     return (
-        <div className="p-8">
+        <div className="p-4 sm:p-6 lg:p-8">
             <h1 className="font-[Lexend] text-2xl font-bold text-[#0F172A]">{nombreActividad}</h1>
             <p className="font-[Lexend] text-sm text-[#475569] mt-1">Seccion: {nombreSeccion}</p>
             <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-6">

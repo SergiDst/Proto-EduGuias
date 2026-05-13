@@ -9,6 +9,7 @@ export interface ActividadesStore {
     actividades: Actividad[];
     selectedActividad: Actividad | null;
     questionnaireDraft: CuestionarioPayload | null;
+    draftSubject: string;
     loading: boolean;
     error: string | null;
     fetched: boolean;
@@ -21,6 +22,7 @@ export interface ActividadesStore {
         data: UpdateActividadInput
     ) => Promise<void>;
     setQuestionnaireDraft: (payload: CuestionarioPayload) => void;
+    setDraftSubject: (subject: string) => void;
     updateSelectedActividadPayload: (payload: CuestionarioPayload) => void;
     deleteActividad: (uid: string, actividadId: string) => Promise<void>;
     clearSelectedActividad: () => void;

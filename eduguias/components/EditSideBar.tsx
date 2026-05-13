@@ -8,6 +8,7 @@ import type {
     QuestionnairePaletteMode,
 } from "@/interfaces/actividades";
 import { useActividadesStore } from "@/stores/actividadesStore";
+import { useUiStore } from "@/stores/uiStore";
 
 type CardType = "WCAG" | "UDL" | "Clarity";
 
@@ -335,18 +336,30 @@ function PaletteSidebar() {
 export default function EditSideBar({
     assistantOpen,
     setAssistantOpen,
-    assistantCards,
     seccionActual,
+    isDesktop = true,
 }: {
     assistantOpen: boolean;
     setAssistantOpen: (open: boolean) => void;
-    assistantCards?: AssistantCard[];
     seccionActual?: string;
+    isDesktop?: boolean;
 }) {
     const paletteMode = seccionActual === "paleta";
+    const microtips = useUiStore((state) => state.microtips);
+    const dismissSidebarTip = useUiStore((state) => state.dismissSidebarTip);
+
+    // Show tips that have been moved to sidebar and not dismissed
+    const sidebarTips = microtips.filter((t) => t.movedToSidebar && !t.dismissed);
+
+    // Width logic differs on mobile (full-width drawer) vs desktop (collapse rail)
+    const desktopWidthClass = assistantOpen ? (paletteMode ? "lg:w-88" : "lg:w-70") : "lg:w-12";
+    const mobileTransform = assistantOpen ? "translate-x-0" : "translate-x-full";
 
     return (
-        <aside className={`fixed right-0 top-16 bottom-0 z-20 bg-white border-l border-slate-200 flex flex-col transition-all duration-300 overflow-hidden ${assistantOpen ? (paletteMode ? "w-88" : "w-70") : "w-12"}`}
+        <aside
+            aria-label="Asistente y personalización"
+            className={`fixed right-0 top-16 bottom-0 z-40 bg-white border-l border-slate-200 flex flex-col transition-all duration-300 overflow-hidden
+                ${isDesktop ? `lg:translate-x-0 ${desktopWidthClass}` : `w-[min(20rem,90vw)] ${mobileTransform}`}`}
         >
             {/* Panel header */}
             <div className="flex items-center justify-between px-4 py-4 border-b border-slate-100 shrink-0">
@@ -357,10 +370,17 @@ export default function EditSideBar({
                             <path d="M9 8.25V13.5" stroke="#135BEC" strokeWidth="1.5" strokeLinecap="round" />
                             <circle cx="9" cy="5.625" r="0.875" fill="#135BEC" />
                         </svg>
-                        <div className="min-w-0">
-                            <p className="font-[Lexend] text-xs font-bold text-[#135BEC] tracking-[0.5px] uppercase leading-none">
-                                {paletteMode ? "Personalizacion" : "Asistente"}
-                            </p>
+                        <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                                <p className="font-[Lexend] text-xs font-bold text-[#135BEC] tracking-[0.5px] uppercase leading-none">
+                                    {paletteMode ? "Personalizacion" : "Asistente"}
+                                </p>
+                                {!paletteMode && sidebarTips.length > 0 && (
+                                    <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-[#135BEC] text-white font-bold text-[9px]">
+                                        {sidebarTips.length}
+                                    </span>
+                                )}
+                            </div>
                             <p className="font-[Lexend] text-[11px] text-[#64748B] mt-0.5 truncate">
                                 {paletteMode ? "Ajusta la apariencia visual de la actividad" : "Asistente de accesibilidad y pedagogia"}
                             </p>
@@ -369,10 +389,14 @@ export default function EditSideBar({
                 )}
                 <button
                     onClick={() => setAssistantOpen(!assistantOpen)}
-                    className={`shrink-0 text-[#94A3B8] hover:text-[#475569] transition-colors ${assistantOpen ? "" : "mx-auto"
-                        }`}
+                    className={`shrink-0 text-[#94A3B8] hover:text-[#475569] transition-colors relative ${assistantOpen ? "" : "mx-auto"}`}
                     title={assistantOpen ? (paletteMode ? "Cerrar personalizacion" : "Cerrar asistente") : (paletteMode ? "Abrir personalizacion" : "Abrir asistente")}
+                    aria-label={assistantOpen ? (paletteMode ? "Cerrar personalización" : "Cerrar asistente") : (paletteMode ? "Abrir personalización" : "Abrir asistente")}
+                    aria-expanded={assistantOpen}
                 >
+                    {!assistantOpen && !paletteMode && sidebarTips.length > 0 && (
+                        <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-amber-400 border-2 border-white" />
+                    )}
                     <svg
                         width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"
                         className={`transition-transform duration-300 ${assistantOpen ? "" : "rotate-180"}`}
@@ -385,35 +409,55 @@ export default function EditSideBar({
             {/* Cards */}
             {assistantOpen && (paletteMode ? <PaletteSidebar /> : (
                 <div className="flex flex-col gap-3 p-4 overflow-y-auto flex-1">
-                    {assistantCards ?
-                        assistantCards.map((card) => {
-                            const styles = cardTypeStyles[card.id];
+                    {sidebarTips.length > 0 ? (
+                        sidebarTips.map((tip) => {
+                            const styles = cardTypeStyles[tip.type as CardType];
                             return (
                                 <div
-                                    key={card.id}
-                                    className={`rounded-xl border p-4 ${styles.bgClass}`}
+                                    key={tip.id}
+                                    className={`rounded-xl border p-4 ${styles.bgClass} relative`}
                                 >
-                                    <div className="flex items-start gap-2 mb-2">
+                                    <button
+                                        onClick={() => dismissSidebarTip(tip.id)}
+                                        className="absolute top-3 right-3 text-slate-400 hover:text-slate-600 transition-colors"
+                                        aria-label="Descartar sugerencia"
+                                    >
+                                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                                            <path d="M9 3L3 9M3 3L9 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                                        </svg>
+                                    </button>
+                                    <div className="flex items-start gap-2 mb-2 pr-4">
                                         <span className="shrink-0 mt-0.5">{styles.icon}</span>
                                         <p className={`font-[Lexend] text-[13px] font-bold leading-snug ${styles.titleColor}`}>
-                                            {card.title}
+                                            {tip.title}
                                         </p>
                                     </div>
                                     <p className={`font-[Lexend] text-[12px] leading-[1.6] ${styles.bodyColor}`}>
-                                        {card.body}
+                                        {tip.body}
                                     </p>
+                                    <div className="mt-2">
+                                        <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold tracking-wide uppercase ${
+                                            tip.type === "WCAG" ? "bg-amber-100 text-amber-700" :
+                                            tip.type === "UDL" ? "bg-blue-100 text-blue-700" :
+                                            "bg-slate-100 text-slate-600"
+                                        }`}>
+                                            {tip.section} · {tip.type}
+                                        </span>
+                                    </div>
                                 </div>
                             );
                         })
-                        : (
-                            <div className="text-center py-10">
-                                <p className="font-[Lexend] text-sm text-[#475569]">
-                                    No hay sugerencias por el momento. ¡Buen trabajo!
-                                </p>
-                            </div>
-                        )
-                    }
-
+                    ) : (
+                        <div className="text-center py-10 flex flex-col items-center gap-3">
+                            <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                                <circle cx="16" cy="16" r="14" stroke="#10B981" strokeWidth="2" />
+                                <path d="M10 16L14 20L22 12" stroke="#10B981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                            <p className="font-[Lexend] text-sm text-[#475569] text-center">
+                                No hay sugerencias por el momento. ¡Buen trabajo!
+                            </p>
+                        </div>
+                    )}
                 </div>
             ))}
         </aside>
