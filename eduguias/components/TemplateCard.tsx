@@ -7,6 +7,8 @@ interface TemplateCardProps {
   category: string;
   title: string;
   description: string;
+  onClick?: () => void;
+  loading?: boolean;
 }
 
 /** Generic template/document SVG used across all cards */
@@ -32,7 +34,7 @@ function CardIcon({ color }: { color: string }) {
   );
 }
 
-export default function TemplateCard({ gradient, iconColor, badgeLabel, badgeBg, badgeTextColor, category, title, description,}: TemplateCardProps) {
+export default function TemplateCard({ gradient, iconColor, badgeLabel, badgeBg, badgeTextColor, category, title, description, onClick, loading,}: TemplateCardProps) {
   return (
     <div className="flex flex-col rounded-2xl border border-slate-200 bg-white overflow-hidden hover:shadow-lg transition-shadow duration-200">
       {/* Card image / icon area */}
@@ -72,8 +74,12 @@ export default function TemplateCard({ gradient, iconColor, badgeLabel, badgeBg,
 
         {/* CTA button */}
         <div className="flex justify-center mt-2">
-          <button className="font-[Lexend] text-base font-semibold text-white bg-[#135BEC] rounded-xl px-8 py-3 leading-6 hover:bg-blue-700 transition-colors shadow-[0_10px_15px_-3px_rgba(19,91,236,0.20),0_4px_6px_-4px_rgba(19,91,236,0.20)]">
-            Ver plantilla
+          <button
+            onClick={onClick}
+            disabled={loading}
+            className="font-[Lexend] text-base font-semibold text-white bg-[#135BEC] rounded-xl px-8 py-3 leading-6 hover:bg-blue-700 transition-colors shadow-[0_10px_15px_-3px_rgba(19,91,236,0.20),0_4px_6px_-4px_rgba(19,91,236,0.20)] disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {loading ? "Abriendo..." : "Ver plantilla"}
           </button>
         </div>
       </div>

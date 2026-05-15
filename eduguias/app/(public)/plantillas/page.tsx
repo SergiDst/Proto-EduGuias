@@ -1,8 +1,30 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import TemplateCard from "@/components/TemplateCard";
 import { usePlantillasStore } from "@/stores/plantillasStore";
+import { useActividadesStore } from "@/stores/actividadesStore";
+import { useAuthStore } from "@/stores/authStore";
+import { useUiStore } from "@/stores/uiStore";
+import { toEditorActivityType } from "@/constants/activityTypes";
+import { generateHtmlActivity } from "@/utils/generateHtml";
+import { generateScormPackage } from "@/utils/generateScorm";
+import type {
+  ActivityType,
+  CreateActividadInput,
+  CuestionarioPayload,
+} from "@/interfaces/actividades";
+import type { Plantilla } from "@/services/plantillasServices";
+
+const isCuestionarioPayload = (value: unknown): value is CuestionarioPayload => {
+  if (!value || typeof value !== "object") return false;
+  const c = value as CuestionarioPayload;
+  return Array.isArray(c.questions) && typeof c.instructions === "string";
+};
+
+const slugifyFileName = (value: string) =>
+  value.trim().replace(/\s+/g, "_").toLowerCase() || "actividad";
 
 const ACTIVITY_STYLES: Record<
   string,
@@ -63,17 +85,113 @@ const TYPE_LABELS: Record<string, string> = {
 const normalizeType = (value: string) => value.trim().toLowerCase();
 
 export default function Plantillas() {
+  const router = useRouter();
   const [activeCategory, setActiveCategory] = useState("Todas las áreas");
   const [searchQuery, setSearchQuery] = useState("");
+  const [creatingId, setCreatingId] = useState<string | null>(null);
+  const [previewTpl, setPreviewTpl] = useState<Plantilla | null>(null);
+  const [downloadingHtml, setDownloadingHtml] = useState(false);
+  const [downloadingScorm, setDownloadingScorm] = useState(false);
   const plantillas = usePlantillasStore((state) => state.plantillas);
   const loading = usePlantillasStore((state) => state.loading);
   const error = usePlantillasStore((state) => state.error);
   const fetched = usePlantillasStore((state) => state.fetched);
   const fetchPlantillas = usePlantillasStore((state) => state.fetchPlantillas);
+  const createActividad = useActividadesStore((state) => state.createActividad);
+  const user = useAuthStore((state) => state.user);
+  const setGlobalModal = useUiStore((state) => state.setGlobalModal);
 
   useEffect(() => {
     fetchPlantillas().catch(() => undefined);
   }, [fetchPlantillas]);
+
+  const handleVerPlantilla = async (tpl: Plantilla) => {
+    if (!user?.uid) {
+      setPreviewTpl(tpl);
+      return;
+    }
+
+    if (creatingId) return;
+    setCreatingId(tpl.id);
+    try {
+      const editorType = toEditorActivityType(tpl.activityType);
+      const nueva = await createActividad(user.uid, {
+        type: editorType as ActivityType,
+        subject: tpl.category,
+        title: tpl.title,
+        payload: tpl.content,
+      } as CreateActividadInput);
+      router.push(`/mis-actividades/${editorType}?actividadId=${nueva.id}`);
+    } catch {
+      setGlobalModal({
+        visible: true,
+        titulo: "No se pudo abrir la plantilla",
+        descripcion:
+          "Ocurrió un error al crear tu copia de la plantilla. Inténtalo de nuevo.",
+        onClose: () => setGlobalModal({ visible: false }),
+      });
+      setCreatingId(null);
+    }
+  };
+
+  const previewPayload =
+    previewTpl && isCuestionarioPayload(previewTpl.content)
+      ? previewTpl.content
+      : null;
+  const previewHtml = useMemo(() => {
+    if (!previewTpl || !previewPayload) return null;
+    return generateHtmlActivity(
+      previewPayload,
+      previewTpl.title,
+      previewTpl.category
+    );
+  }, [previewTpl, previewPayload]);
+
+  const closePreview = () => {
+    setPreviewTpl(null);
+    setDownloadingHtml(false);
+    setDownloadingScorm(false);
+  };
+
+  const handleDownloadHtml = () => {
+    if (!previewTpl || !previewHtml) return;
+    setDownloadingHtml(true);
+    try {
+      const blob = new Blob([previewHtml], { type: "text/html;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${slugifyFileName(previewTpl.title)}.html`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } finally {
+      setDownloadingHtml(false);
+    }
+  };
+
+  const handleDownloadScorm = async () => {
+    if (!previewTpl || !previewPayload) return;
+    setDownloadingScorm(true);
+    try {
+      const blob = await generateScormPackage(
+        previewPayload,
+        previewTpl.title,
+        previewTpl.category
+      );
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${slugifyFileName(previewTpl.title)}_scorm.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } finally {
+      setDownloadingScorm(false);
+    }
+  };
 
   const categories = useMemo(() => {
     const unique = new Set(plantillas.map((tpl) => tpl.category).filter(Boolean));
@@ -168,6 +286,8 @@ export default function Plantillas() {
                     category={tpl.category}
                     title={tpl.title}
                     description={tpl.description}
+                    onClick={() => handleVerPlantilla(tpl)}
+                    loading={creatingId === tpl.id}
                   />
                 );
               })}
@@ -185,6 +305,73 @@ export default function Plantillas() {
           </p>
         </div>
       </main>
+
+      {previewTpl ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-4 py-6"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) closePreview();
+          }}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label={`Vista previa de ${previewTpl.title}`}
+            className="flex w-full max-w-3xl max-h-[90vh] flex-col rounded-2xl bg-white shadow-[0_20px_60px_rgba(15,23,42,0.18)]"
+          >
+            <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-6 py-4">
+              <div>
+                <h2 className="font-[Lexend] text-xl font-bold text-[#0F172A]">
+                  {previewTpl.title}
+                </h2>
+                <p className="font-[Lexend] text-sm text-[#64748B]">
+                  {previewTpl.category}
+                </p>
+              </div>
+              <button
+                onClick={closePreview}
+                aria-label="Cerrar vista previa"
+                className="shrink-0 rounded-lg p-2 text-[#64748B] hover:bg-slate-100 transition-colors"
+              >
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                  <path d="M5 5L15 15M15 5L5 15" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-auto bg-[#F6F6F8] p-4">
+              {previewHtml ? (
+                <iframe
+                  title={`Vista previa de ${previewTpl.title}`}
+                  srcDoc={previewHtml}
+                  className="h-[55vh] w-full rounded-xl border border-slate-200 bg-white"
+                />
+              ) : (
+                <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 font-[Lexend] text-sm text-amber-700">
+                  Esta plantilla no tiene contenido disponible para previsualizar.
+                </div>
+              )}
+            </div>
+
+            <div className="flex flex-col gap-3 border-t border-slate-200 px-6 py-4 sm:flex-row sm:justify-end">
+              <button
+                onClick={handleDownloadHtml}
+                disabled={!previewHtml || downloadingHtml}
+                className="font-[Lexend] text-sm font-semibold text-[#135BEC] bg-white border border-[#135BEC] rounded-xl px-6 py-3 hover:bg-blue-50 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {downloadingHtml ? "Descargando..." : "Descargar HTML"}
+              </button>
+              <button
+                onClick={handleDownloadScorm}
+                disabled={!previewPayload || downloadingScorm}
+                className="font-[Lexend] text-sm font-semibold text-white bg-[#135BEC] rounded-xl px-6 py-3 hover:bg-blue-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {downloadingScorm ? "Generando..." : "Descargar SCORM"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
